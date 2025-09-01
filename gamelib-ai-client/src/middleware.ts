@@ -7,7 +7,7 @@ const isAuthenticated = false; // Set to true to allow dashboard access
 export function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
-    if (pathname.startsWith('/dashboard')) {
+    if (pathname.startsWith('/dashboard') && !isAuthenticated) {
       return NextResponse.redirect(new URL('/login', request.url));
     }
     return NextResponse.next();

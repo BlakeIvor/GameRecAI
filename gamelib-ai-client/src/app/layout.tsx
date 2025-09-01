@@ -13,8 +13,8 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "GameLib.Ai",
-  description: "Welcome to GameLib.Ai - Your Game Library Powered by AI",
+  title: "GameLib.AI",
+  description: "Welcome to GameLib.AI - Your Game Library Powered by AI",
 };
 
 export default function RootLayout({
