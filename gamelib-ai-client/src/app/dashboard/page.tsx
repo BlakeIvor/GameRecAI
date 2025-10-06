@@ -82,16 +82,10 @@ export default function DashboardPage() {
       <div className="max-w-4xl mx-auto">
         <div className="flex justify-between items-center mb-8">
           <h1 className="text-3xl font-bold">Welcome to your GameLib.Ai Dashboard</h1>
-          <button 
-            onClick={handleLogout}
-            className="bg-red-600 hover:bg-red-700 text-white font-bold py-2 px-4 rounded"
-          >
-            Logout
-          </button>
         </div>
         
         <div className="bg-gray-800 rounded-lg p-6 mb-8">
-          <h2 className="text-xl font-semibold mb-4">Your Profile</h2>
+          <h2 className="text-xl font-semibold mb-4">My Profile</h2>
           <p className="text-gray-300">Steam Name: {steamName || (steamId ? 'Fetching name...' : 'Not available')}</p>
           <p className="text-gray-300 text-sm">Steam ID: {steamId}</p>
         </div>
