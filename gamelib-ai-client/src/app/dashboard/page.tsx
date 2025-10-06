@@ -6,7 +6,7 @@ import Link from 'next/link';
 import { useAuth } from '../contexts/AuthContext';
 
 export default function DashboardPage() {
-  const { steamId, isLoggedIn, login, logout, loading } = useAuth();
+  const { steamId, steamName, isLoggedIn, login, logout, loading } = useAuth();
   const searchParams = useSearchParams();
 
   useEffect(() => {
@@ -23,14 +23,17 @@ export default function DashboardPage() {
       
       if (steamIdParam) {
         console.log('Found Steam ID in URL, logging in user');
-        // Use the context login method
-        login(steamIdParam);
-        
-        // Wait a bit before clearing URL to ensure login completes
-        setTimeout(() => {
-          console.log('Clearing URL params after login');
-          window.history.replaceState({}, '', '/dashboard');
-        }, 100);
+        // Use the context login method (now async)
+        login(steamIdParam).then(() => {
+          console.log('Login completed successfully');
+          // Wait a bit before clearing URL to ensure login completes
+          setTimeout(() => {
+            console.log('Clearing URL params after login');
+            window.history.replaceState({}, '', '/dashboard');
+          }, 100);
+        }).catch((error) => {
+          console.error('Login failed:', error);
+        });
       }
     } else {
       console.log('Dashboard - window not available (SSR)');
@@ -89,7 +92,8 @@ export default function DashboardPage() {
         
         <div className="bg-gray-800 rounded-lg p-6 mb-8">
           <h2 className="text-xl font-semibold mb-4">Your Profile</h2>
-          <p className="text-gray-300">Steam ID: {steamId}</p>
+          <p className="text-gray-300">Steam Name: {steamName || (steamId ? 'Fetching name...' : 'Not available')}</p>
+          <p className="text-gray-300 text-sm">Steam ID: {steamId}</p>
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">

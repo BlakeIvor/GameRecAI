@@ -4,7 +4,7 @@ import Link from 'next/link';
 import { useAuth } from '../contexts/AuthContext';
 
 export default function Navigation() {
-  const { steamId, isLoggedIn, logout, loading } = useAuth();
+  const { steamId, steamName, isLoggedIn, logout, loading } = useAuth();
 
   const handleLogout = () => {
     console.log('Navigation logout clicked');
@@ -35,7 +35,7 @@ export default function Navigation() {
           {!loading && isLoggedIn ? (
             <div className="flex items-center space-x-4">
               <span className="text-sm text-gray-300">
-                Steam: {steamId}
+                Steam: {steamName || steamId}
               </span>
               <button 
                 onClick={handleLogout}
