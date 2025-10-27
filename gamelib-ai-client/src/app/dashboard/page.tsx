@@ -48,7 +48,7 @@ export default function DashboardPage() {
 
   if (loading) {
     return (
-      <main className="flex min-h-screen items-center justify-center bg-black">
+      <main className="flex min-h-screen items-center justify-center bg-gradient-to-br from-gray-950 to-black">
         <div className="text-white text-xl">Loading...</div>
       </main>
     );
@@ -67,41 +67,129 @@ export default function DashboardPage() {
   if (!loading && !isLoggedIn && !steamIdParam) {
     console.log('Dashboard: Not logged in and no Steam ID param, showing login prompt');
     return (
-      <main className="flex min-h-screen items-center justify-center bg-black flex-col gap-4">
-        <h1 className="text-white text-3xl font-bold">Welcome to GameLib.Ai</h1>
-        <p className="text-gray-300">Please log in to access your dashboard</p>
-        <Link href="/login" className="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded">
-          Go to Login
-        </Link>
+      <main className="min-h-screen bg-gradient-to-br from-gray-950 to-black text-white">
+        <div className="flex flex-col items-center justify-center min-h-[60vh] text-center">
+          <div className="text-6xl mb-4">🔒</div>
+          <h1 className="text-4xl font-bold mb-4 bg-gradient-to-r from-blue-400 to-purple-400 bg-clip-text text-transparent">
+            Welcome to GameLib.AI
+          </h1>
+          <p className="text-xl text-gray-300 mb-6 max-w-md">
+            Please log in with your Steam account to access your personalized gaming dashboard
+          </p>
+          <Link 
+            href="/login" 
+            className="bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 px-6 rounded-lg transition-colors"
+          >
+            Login with Steam
+          </Link>
+        </div>
       </main>
     );
   }
 
   return (
-    <main className="min-h-screen bg-black text-white p-8">
-      <div className="max-w-4xl mx-auto">
-        <div className="flex justify-between items-center mb-8">
-          <h1 className="text-3xl font-bold">Welcome to your GameLib.Ai Dashboard</h1>
-        </div>
-        
-        <div className="bg-gray-800 rounded-lg p-6 mb-8">
-          <h2 className="text-xl font-semibold mb-4">My Profile</h2>
-          <p className="text-gray-300">Steam Name: {steamName || (steamId ? 'Fetching name...' : 'Not available')}</p>
-          <p className="text-gray-300 text-sm">Steam ID: {steamId}</p>
+    <main className="min-h-screen bg-gradient-to-br from-gray-950 to-black text-white">
+      <div className="max-w-7xl mx-auto px-6 py-8">
+        {/* Header */}
+        <div className="text-center mb-12">
+          <h1 className="text-4xl font-bold mb-4 bg-gradient-to-r from-blue-400 to-purple-400 bg-clip-text text-transparent">
+            Gaming Dashboard
+          </h1>
+          <p className="text-xl text-gray-300">
+            Your personalized gaming hub powered by AI
+          </p>
+          {steamName && (
+            <div className="bg-gray-800 rounded-lg p-4 mt-6 max-w-2xl mx-auto">
+              <p className="text-sm text-gray-400 mb-1">
+                <span className="text-blue-400 font-semibold">Welcome back,</span> {steamName}
+              </p>
+              <p className="text-xs text-gray-500">Steam ID: {steamId}</p>
+            </div>
+          )}
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        {/* Profile Section */}
+        <div className="bg-gradient-to-r from-gray-800 to-gray-850 rounded-xl p-6 mb-8 border border-gray-700/50">
+          <div className="flex items-center justify-between">
+            <div>
+              <h2 className="text-2xl font-bold mb-2 text-blue-400">My Profile</h2>
+              <div className="space-y-2">
+                <p className="text-gray-300">
+                  <span className="text-gray-400">Steam Name:</span> {steamName || (steamId ? 'Fetching name...' : 'Not available')}
+                </p>
+                <p className="text-gray-300">
+                  <span className="text-gray-400">Steam ID:</span> {steamId}
+                </p>
+              </div>
+            </div>
+            <div className="text-right">
+              <button
+                onClick={handleLogout}
+                className="bg-red-600 hover:bg-red-700 text-white font-bold py-2 px-4 rounded-lg transition-colors"
+              >
+                Logout
+              </button>
+            </div>
+          </div>
+        </div>
+
+        {/* Features Grid */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-8 mb-8">
           <Link 
             href="/recommendations" 
-            className="bg-blue-600 hover:bg-blue-700 p-6 rounded-lg block transition-colors"
+            className="bg-gradient-to-br from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 p-8 rounded-xl block transition-all duration-300 group shadow-xl transform hover:scale-105"
           >
-            <h3 className="text-xl font-semibold mb-2">Game Recommendations</h3>
-            <p className="text-gray-300">Get personalized game recommendations based on your Steam library</p>
+            <div className="flex items-center mb-4">
+              <span className="text-3xl mr-4">🎯</span>
+              <h3 className="text-2xl font-bold text-white">AI Recommendations</h3>
+            </div>
+            <p className="text-blue-100 leading-relaxed">
+              Get personalized game recommendations powered by advanced AI analysis of your Steam library and gaming preferences.
+            </p>
+            <div className="mt-4 text-blue-200 text-sm flex items-center">
+              <span>Explore recommendations</span>
+              <span className="ml-2 group-hover:translate-x-1 transition-transform">→</span>
+            </div>
           </Link>
           
-          <div className="bg-gray-800 p-6 rounded-lg">
-            <h3 className="text-xl font-semibold mb-2">Coming Soon</h3>
-            <p className="text-gray-300">More features are being developed!</p>
+          <div className="bg-gradient-to-br from-gray-800 to-gray-850 p-8 rounded-xl border border-gray-700/50">
+            <div className="flex items-center mb-4">
+              <span className="text-3xl mr-4">🚀</span>
+              <h3 className="text-2xl font-bold text-gray-300">Coming Soon</h3>
+            </div>
+            <p className="text-gray-400 leading-relaxed">
+              More exciting features are in development! Stay tuned for library analytics, friend comparisons, and advanced gaming insights.
+            </p>
+            <div className="mt-4">
+              <span className="bg-purple-600 text-white px-3 py-1 rounded-full text-xs font-semibold">
+                In Development
+              </span>
+            </div>
+          </div>
+        </div>
+
+        {/* Quick Actions */}
+        <div className="bg-gradient-to-r from-gray-800 to-gray-850 rounded-xl p-6 border border-gray-700/50">
+          <h2 className="text-xl font-bold mb-4 text-blue-400">Quick Actions</h2>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <Link 
+              href="/about"
+              className="bg-gray-700 hover:bg-gray-600 p-4 rounded-lg transition-colors block text-center"
+            >
+              <span className="text-2xl mb-2 block">ℹ️</span>
+              <span className="text-sm font-medium">About GameLib.AI</span>
+            </Link>
+            <Link 
+              href="/contact"
+              className="bg-gray-700 hover:bg-gray-600 p-4 rounded-lg transition-colors block text-center"
+            >
+              <span className="text-2xl mb-2 block">📧</span>
+              <span className="text-sm font-medium">Contact Support</span>
+            </Link>
+            <div className="bg-gray-700/50 p-4 rounded-lg text-center opacity-50 cursor-not-allowed">
+              <span className="text-2xl mb-2 block">⚙️</span>
+              <span className="text-sm font-medium">Settings (Soon)</span>
+            </div>
           </div>
         </div>
       </div>
