@@ -1,13 +1,42 @@
 'use client';
 
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import { useAuth } from '../contexts/AuthContext';
 
+interface SteamGame {
+  appid: number;
+  playtime_forever: number;
+  rtime_last_played?: number;
+}
+
+interface SteamPlayerData {
+  personaname: string;
+  profileurl: string;
+  avatar: string;
+  avatarmedium: string;
+  avatarfull: string;
+  personastate: number;
+  communityvisibilitystate: number;
+}
+
+interface ProfileData {
+  totalGames: number;
+  topGames: Array<{
+    appid: number;
+    playtime_forever: number;
+    rtime_last_played?: string;
+    name?: string;
+  }>;
+  playerSummary: SteamPlayerData | null;
+}
+
 export default function DashboardPage() {
   const { steamId, steamName, isLoggedIn, login, logout, loading } = useAuth();
   const searchParams = useSearchParams();
+  const [profileData, setProfileData] = useState<ProfileData | null>(null);
+  const [profileLoading, setProfileLoading] = useState(false);
 
   useEffect(() => {
     console.log('Dashboard useEffect triggered');
@@ -39,6 +68,96 @@ export default function DashboardPage() {
       console.log('Dashboard - window not available (SSR)');
     }
   }, [searchParams, login]);
+
+  // Fetch Steam profile data when user is logged in
+  useEffect(() => {
+    if (steamId && isLoggedIn) {
+      fetchSteamProfileData();
+    }
+  }, [steamId, isLoggedIn]);
+
+  const fetchSteamProfileData = async () => {
+    if (!steamId) return;
+
+    setProfileLoading(true);
+    try {
+      // Fetch both profile and player summary data
+      const [profileResponse, playerResponse] = await Promise.all([
+        fetch(`http://localhost:8000/api/steam/profile/${steamId}`),
+        fetch(`http://localhost:8000/api/steam/player/${steamId}`)
+      ]);
+
+      let profileData = null;
+      let playerData = null;
+
+      if (profileResponse.ok) {
+        const profileResult = await profileResponse.json();
+        profileData = profileResult;
+      }
+
+      if (playerResponse.ok) {
+        const playerResult = await playerResponse.json();
+        playerData = playerResult;
+      }
+
+      if (profileData && profileData.games) {
+        // Convert games object to array and sort by playtime
+        const gamesArray = Object.entries(profileData.games).map(([appid, gameData]: [string, any]) => ({
+          appid: parseInt(appid),
+          ...gameData
+        }));
+
+        // Sort by playtime and get top 3
+        const topGames = gamesArray
+          .sort((a, b) => b.playtime_forever - a.playtime_forever)
+          .slice(0, 3);
+
+        // Get game names for top games (you might want to fetch these from Steam API or cache)
+        const topGamesWithNames = await Promise.all(
+          topGames.map(async (game) => {
+            try {
+              const gameDetailsResponse = await fetch(`http://localhost:8000/api/steam/game-details/${game.appid}`);
+              if (gameDetailsResponse.ok) {
+                const gameDetails = await gameDetailsResponse.json();
+                return { ...game, name: gameDetails.name || `Game ${game.appid}` };
+              }
+            } catch (error) {
+              console.error(`Failed to fetch game details for ${game.appid}:`, error);
+            }
+            return { ...game, name: `Game ${game.appid}` };
+          })
+        );
+
+        setProfileData({
+          totalGames: gamesArray.length,
+          topGames: topGamesWithNames,
+          playerSummary: playerData
+        });
+      }
+    } catch (error) {
+      console.error('Failed to fetch Steam profile data:', error);
+    } finally {
+      setProfileLoading(false);
+    }
+  };
+
+  const formatPlaytime = (minutes: number) => {
+    const hours = Math.floor(minutes / 60);
+    return `${hours.toLocaleString()} hrs`;
+  };
+
+  const getOnlineStatus = (personastate: number) => {
+    const states = {
+      0: { status: 'Offline', color: 'bg-gray-500' },
+      1: { status: 'Online', color: 'bg-green-500' },
+      2: { status: 'Busy', color: 'bg-red-500' },
+      3: { status: 'Away', color: 'bg-yellow-500' },
+      4: { status: 'Snooze', color: 'bg-yellow-500' },
+      5: { status: 'Looking to trade', color: 'bg-blue-500' },
+      6: { status: 'Looking to play', color: 'bg-green-500' }
+    };
+    return states[personastate as keyof typeof states] || states[0];
+  };
 
   const handleLogout = () => {
     console.log('Dashboard logout clicked');
@@ -98,31 +217,85 @@ export default function DashboardPage() {
           <p className="text-xl text-gray-300">
             Your personalized gaming hub powered by AI
           </p>
-          {steamName && (
-            <div className="bg-gray-800 rounded-lg p-4 mt-6 max-w-2xl mx-auto">
-              <p className="text-sm text-gray-400 mb-1">
-                <span className="text-blue-400 font-semibold">Welcome back,</span> {steamName}
-              </p>
-              <p className="text-xs text-gray-500">Steam ID: {steamId}</p>
-            </div>
-          )}
         </div>
 
-        {/* Profile Section */}
-        <div className="bg-gradient-to-r from-gray-800 to-gray-850 rounded-xl p-6 mb-8 border border-gray-700/50">
-          <div className="flex items-center justify-between">
-            <div>
-              <h2 className="text-2xl font-bold mb-2 text-blue-400">My Profile</h2>
-              <div className="space-y-2">
-                <p className="text-gray-300">
-                  <span className="text-gray-400">Steam Name:</span> {steamName || (steamId ? 'Fetching name...' : 'Not available')}
-                </p>
-                <p className="text-gray-300">
-                  <span className="text-gray-400">Steam ID:</span> {steamId}
-                </p>
+        {/* Enhanced Profile Section */}
+        <div className="bg-gradient-to-r from-gray-800 via-gray-750 to-gray-800 rounded-xl p-8 mb-8 border border-gray-600/50 shadow-2xl">
+          <div className="flex items-center mb-6">
+            <div className="relative">
+              {/* Steam Profile Picture - fetched from Steam API */}
+              <img 
+                src={profileData?.playerSummary?.avatarfull || `https://steamcdn-a.akamaihd.net/steamcommunity/public/images/avatars/fe/fef49e7fa7e1997310d705b2a6158ff8dc1cdfeb_full.jpg`}
+                alt={`${steamName || 'User'}'s Steam Avatar`}
+                className="w-16 h-16 rounded-full border-2 border-blue-500"
+                onError={(e) => {
+                  // Fallback to default avatar if Steam avatar fails to load
+                  e.currentTarget.src = 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNjQiIGhlaWdodD0iNjQiIHZpZXdCb3g9IjAgMCA2NCA2NCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPGNpcmNsZSBjeD0iMzIiIGN5PSIzMiIgcj0iMzIiIGZpbGw9IiM0Yjc2ODgiLz4KPHN2ZyB4PSIxNiIgeT0iMTYiIHdpZHRoPSIzMiIgaGVpZ2h0PSIzMiIgdmlld0JveD0iMCAwIDI0IDI0IiBmaWxsPSIjZmZmZmZmIj4KPHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIGZpbGw9Im5vbmUiIHZpZXdCb3g9IjAgMCAyNCAyNCIgc3Ryb2tlLXdpZHRoPSIxLjUiIHN0cm9rZT0iY3VycmVudENvbG9yIj4KICA8cGF0aCBzdHJva2UtbGluZWNhcD0icm91bmQiIHN0cm9rZS1saW5lam9pbj0icm91bmQiIGQ9Ik0xNS43NSA2YTMuNzUgMy43NSAwIDEgMS03LjUgMCAzLjc1IDMuNzUgMCAwIDEgNy41IDBaTTQuNTAxIDIwLjExOGE3LjUgNy41IDAgMCAxIDE0Ljk5OCAwQTEuNDcgMS40NyAwIDAgMSAxOC40NjEgMjJIOS4zOWExLjQ3IDEuNDcgMCAwIDEtMS4zNjktMS44ODJaIiAvPgo8L3N2Zz4KICA8L3N2Zz4KPC9zdmc+';
+                }}
+              />
+              <div className={`absolute -bottom-1 -right-1 w-5 h-5 rounded-full border-2 border-gray-800 ${profileData?.playerSummary ? getOnlineStatus(profileData.playerSummary.personastate).color : 'bg-green-500'}`}></div>
+            </div>
+            <div className="ml-4">
+              <h2 className="text-3xl font-bold text-white mb-1">
+                Welcome back, {profileData?.playerSummary?.personaname || steamName || 'Gamer'}!
+              </h2>
+              <p className="text-blue-300 font-medium">Ready to discover your next favorite game?</p>
+            </div>
+          </div>
+          
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div className="bg-gray-900/50 rounded-lg p-4 border border-gray-700/30">
+              <h3 className="text-blue-400 font-semibold mb-3 text-sm uppercase tracking-wide">Account Information</h3>
+              <div className="space-y-3">
+                <div className="flex justify-between items-center">
+                  <span className="text-gray-400 text-sm">Steam ID:</span>
+                  <span className="text-white font-mono text-sm bg-gray-800 px-2 py-1 rounded">
+                    {steamId}
+                  </span>
+                </div>
+                <div className="flex justify-between items-center">
+                  <span className="text-gray-400 text-sm">Games Owned:</span>
+                  <span className="text-white text-sm font-medium">
+                    {profileLoading ? 'Loading...' : profileData ? profileData.totalGames : 'Loading...'}
+                  </span>
+                </div>
+                <div className="flex justify-between items-center">
+                  <span className="text-gray-400 text-sm">Profile Status:</span>
+                  <span className="flex items-center">
+                    <div className={`w-2 h-2 rounded-full mr-2 ${profileData?.playerSummary ? getOnlineStatus(profileData.playerSummary.personastate).color : 'bg-green-400'}`}></div>
+                    <span className={`text-sm font-medium ${profileData?.playerSummary ? 'text-' + getOnlineStatus(profileData.playerSummary.personastate).color.replace('bg-', '') : 'text-green-400'}`}>
+                      {profileData?.playerSummary ? getOnlineStatus(profileData.playerSummary.personastate).status : 'Online'}
+                    </span>
+                  </span>
+                </div>
               </div>
             </div>
-            <div className="text-right">
+            
+            <div className="bg-gray-900/50 rounded-lg p-4 border border-gray-700/30">
+              <h3 className="text-green-400 font-semibold mb-3 text-sm uppercase tracking-wide">Top Games</h3>
+              <div className="space-y-3">
+                {profileLoading ? (
+                  <div className="text-center py-2">
+                    <span className="text-gray-500 text-xs">Fetching your most played games...</span>
+                  </div>
+                ) : profileData && profileData.topGames.length > 0 ? (
+                  profileData.topGames.slice(0, 3).map((game, index) => (
+                    <div key={game.appid} className="flex items-center justify-between">
+                      <div className="flex items-center">
+                        <div className="w-8 h-8 bg-gray-700 rounded mr-2 flex items-center justify-center">
+                          <span className="text-xs">🎮</span>
+                        </div>
+                        <span className="text-white text-sm">{game.name || `Game ${game.appid}`}</span>
+                      </div>
+                      <span className="text-gray-400 text-xs">{formatPlaytime(game.playtime_forever)}</span>
+                    </div>
+                  ))
+                ) : (
+                  <div className="text-center py-2">
+                    <span className="text-gray-500 text-xs">No game data available</span>
+                  </div>
+                )}
+              </div>
             </div>
           </div>
         </div>
@@ -149,15 +322,19 @@ export default function DashboardPage() {
           <div className="bg-gradient-to-br from-gray-800 to-gray-850 p-8 rounded-xl border border-gray-700/50">
             <div className="flex items-center mb-4">
               <span className="text-3xl mr-4">🚀</span>
-              <h3 className="text-2xl font-bold text-gray-300">Coming Soon</h3>
+              <h3 className="text-2xl font-bold text-gray-300">Profile Management</h3>
             </div>
             <p className="text-gray-400 leading-relaxed">
-              More exciting features are in development! Stay tuned for library analytics, friend comparisons, and advanced gaming insights.
+              {profileLoading ? 'Syncing your Steam profile data...' : 'Your Steam profile is synchronized and ready for AI recommendations.'}
             </p>
             <div className="mt-4">
-              <span className="bg-purple-600 text-white px-3 py-1 rounded-full text-xs font-semibold">
-                In Development
-              </span>
+              <button
+                onClick={fetchSteamProfileData}
+                disabled={profileLoading}
+                className="bg-purple-600 hover:bg-purple-700 disabled:opacity-50 text-white px-4 py-2 rounded-lg text-sm font-semibold transition-colors"
+              >
+                {profileLoading ? 'Syncing...' : 'Refresh Profile'}
+              </button>
             </div>
           </div>
         </div>
