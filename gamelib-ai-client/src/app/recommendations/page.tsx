@@ -15,6 +15,10 @@ interface GameRecommendation {
   publishers: string[];
   release_date: string;
   steam_url: string;
+  based_on: {
+    title: string;
+    app_id: number;
+  };
 }
 
 interface RecommendationsResponse {
@@ -142,7 +146,7 @@ export default function RecommendationsPage() {
             <div>
               <h3 className="text-lg font-semibold text-blue-400 mb-2">🧠 AI Analysis Status</h3>
               <p className="text-gray-300 text-sm">
-                Your recommendations are powered by our advanced machine learning algorithms. 
+                Your recommendations are powered by our advanced [IN PROGRESS] algorithms.
                 Full preference analysis is continuously improving with each interaction.
               </p>
             </div>
@@ -222,7 +226,6 @@ export default function RecommendationsPage() {
                 <span className="bg-gradient-to-r from-blue-600 to-purple-600 text-white px-4 py-2 rounded-full text-sm font-semibold">
                   {recommendations.total_games} Games Found
                 </span>
-                <p className="text-xs text-gray-400 mt-1">AI Confidence: High</p>
               </div>
             </div>
 
@@ -283,6 +286,25 @@ export default function RecommendationsPage() {
                             )}
                           </div>
                         </div>
+
+                        {/* AI Reasoning */}
+                        {game.based_on && (
+                          <div className="bg-gray-900/50 rounded-lg p-3 mb-4 border border-purple-800/30">
+                            <div className="flex items-start space-x-3">
+                              <div className="text-purple-400 mt-1">
+                                <span className="text-sm">🧠</span>
+                              </div>
+                              <div className="flex-1">
+                                <h4 className="text-sm font-semibold text-purple-300 mb-1">Why this recommendation?</h4>
+                                <p className="text-xs text-gray-300">
+                                  Our AI detected similarities between <span className="text-blue-400 font-medium">{game.title}</span> and 
+                                  your played game <span className="text-blue-400 font-medium">{game.based_on.title}</span>. 
+                                  Players who enjoyed one typically love the other.
+                                </p>
+                              </div>
+                            </div>
+                          </div>
+                        )}
 
                         {/* Description */}
                         {game.description && (
