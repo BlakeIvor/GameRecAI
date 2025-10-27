@@ -28,6 +28,7 @@ interface ProfileData {
     playtime_forever: number;
     rtime_last_played?: string;
     name?: string;
+    image?: string;
   }>;
   playerSummary: SteamPlayerData | null;
 }
@@ -79,60 +80,102 @@ export default function DashboardPage() {
   const fetchSteamProfileData = async () => {
     if (!steamId) return;
 
+    console.log('Starting fetchSteamProfileData for steamId:', steamId);
     setProfileLoading(true);
     try {
+      console.log('Making API calls to backend...');
+      
       // Fetch both profile and player summary data
       const [profileResponse, playerResponse] = await Promise.all([
         fetch(`http://localhost:8000/api/steam/profile/${steamId}`),
         fetch(`http://localhost:8000/api/steam/player/${steamId}`)
       ]);
 
+      console.log('Profile response status:', profileResponse.status);
+      console.log('Player response status:', playerResponse.status);
+
       let profileData = null;
       let playerData = null;
 
       if (profileResponse.ok) {
         const profileResult = await profileResponse.json();
+        console.log('Profile data received:', profileResult);
         profileData = profileResult;
+      } else {
+        const errorText = await profileResponse.text();
+        console.error('Profile fetch failed:', errorText);
       }
 
       if (playerResponse.ok) {
         const playerResult = await playerResponse.json();
+        console.log('Player data received:', playerResult);
         playerData = playerResult;
+      } else {
+        const errorText = await playerResponse.text();
+        console.error('Player fetch failed:', errorText);
       }
 
       if (profileData && profileData.games) {
+        console.log('Games data found:', Object.keys(profileData.games).length, 'games');
+        
         // Convert games object to array and sort by playtime
         const gamesArray = Object.entries(profileData.games).map(([appid, gameData]: [string, any]) => ({
           appid: parseInt(appid),
           ...gameData
         }));
 
+        console.log('Games array sample:', gamesArray.slice(0, 3));
+
         // Sort by playtime and get top 3
         const topGames = gamesArray
           .sort((a, b) => b.playtime_forever - a.playtime_forever)
           .slice(0, 3);
 
-        // Get game names for top games (you might want to fetch these from Steam API or cache)
+        console.log('Top 3 games by playtime:', topGames);
+
+        // Get game names for top games
         const topGamesWithNames = await Promise.all(
           topGames.map(async (game) => {
             try {
+              console.log(`Fetching details for game ${game.appid}...`);
               const gameDetailsResponse = await fetch(`http://localhost:8000/api/steam/game-details/${game.appid}`);
+              console.log(`Game details response status for ${game.appid}:`, gameDetailsResponse.status);
+              
               if (gameDetailsResponse.ok) {
                 const gameDetails = await gameDetailsResponse.json();
-                return { ...game, name: gameDetails.name || `Game ${game.appid}` };
+                console.log(`Game details for ${game.appid}:`, gameDetails);
+                
+                // Try multiple possible field names for game title and get image
+                const gameName = gameDetails.title || gameDetails.name || `Game ${game.appid}`;
+                const gameImage = gameDetails.image || gameDetails.header_image || null;
+                console.log(`Final game name for ${game.appid}: ${gameName}`);
+                console.log(`Game image for ${game.appid}: ${gameImage}`);
+                
+                return { 
+                  ...game, 
+                  name: gameName,
+                  image: gameImage
+                };
+              } else {
+                const errorText = await gameDetailsResponse.text();
+                console.error(`Failed to fetch details for game ${game.appid}:`, errorText);
               }
             } catch (error) {
-              console.error(`Failed to fetch game details for ${game.appid}:`, error);
+              console.error(`Error fetching game details for ${game.appid}:`, error);
             }
-            return { ...game, name: `Game ${game.appid}` };
+            return { ...game, name: `Game ${game.appid}`, image: null };
           })
         );
+
+        console.log('Final games with names:', topGamesWithNames);
 
         setProfileData({
           totalGames: gamesArray.length,
           topGames: topGamesWithNames,
           playerSummary: playerData
         });
+      } else {
+        console.error('No games data found in profile response');
       }
     } catch (error) {
       console.error('Failed to fetch Steam profile data:', error);
@@ -282,8 +325,21 @@ export default function DashboardPage() {
                   profileData.topGames.slice(0, 3).map((game, index) => (
                     <div key={game.appid} className="flex items-center justify-between">
                       <div className="flex items-center">
-                        <div className="w-8 h-8 bg-gray-700 rounded mr-2 flex items-center justify-center">
-                          <span className="text-xs">🎮</span>
+                        <div className="w-8 h-8 bg-gray-700 rounded mr-2 flex items-center justify-center overflow-hidden">
+                          {game.image ? (
+                            <img 
+                              src={game.image} 
+                              alt={game.name || `Game ${game.appid}`}
+                              className="w-full h-full object-cover"
+                              onError={(e) => {
+                                // Fallback to game controller emoji if image fails
+                                e.currentTarget.style.display = 'none';
+                                e.currentTarget.parentElement!.innerHTML = '<span class="text-xs">🎮</span>';
+                              }}
+                            />
+                          ) : (
+                            <span className="text-xs">🎮</span>
+                          )}
                         </div>
                         <span className="text-white text-sm">{game.name || `Game ${game.appid}`}</span>
                       </div>
