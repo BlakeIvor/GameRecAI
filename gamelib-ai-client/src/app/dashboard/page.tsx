@@ -357,7 +357,7 @@ export default function DashboardPage() {
         </div>
 
         {/* Features Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-8 mb-8">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 mb-8">
           <Link 
             href="/recommendations" 
             className="bg-gradient-to-br from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 p-8 rounded-xl block transition-all duration-300 group shadow-xl transform hover:scale-105"
@@ -371,6 +371,23 @@ export default function DashboardPage() {
             </p>
             <div className="mt-4 text-blue-200 text-sm flex items-center">
               <span>Explore recommendations</span>
+              <span className="ml-2 group-hover:translate-x-1 transition-transform">→</span>
+            </div>
+          </Link>
+
+          <Link 
+            href="/collaborative-recommendations" 
+            className="bg-gradient-to-br from-purple-600 to-purple-700 hover:from-purple-700 hover:to-purple-800 p-8 rounded-xl block transition-all duration-300 group shadow-xl transform hover:scale-105"
+          >
+            <div className="flex items-center mb-4">
+              <span className="text-3xl mr-4">👥</span>
+              <h3 className="text-2xl font-bold text-white">Community Picks</h3>
+            </div>
+            <p className="text-purple-100 leading-relaxed">
+              Discover games loved by players with similar tastes. See what users like you are playing and enjoying.
+            </p>
+            <div className="mt-4 text-purple-200 text-sm flex items-center">
+              <span>View community recommendations</span>
               <span className="ml-2 group-hover:translate-x-1 transition-transform">→</span>
             </div>
           </Link>
