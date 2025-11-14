@@ -67,12 +67,12 @@ export default function CollaborativeRecommendationsPage() {
   } | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [usingCache, setUsingCache] = useState(false);
+  const [usingCache, setUsingCache] = useState(false);  
 
   // Filter state
   const [topNGames, setTopNGames] = useState<number>(5);
   const [minPlaytime, setMinPlaytime] = useState<number>(60);
-  const [maxSimilarUsers, setMaxSimilarUsers] = useState<number | null>(200);
+  const [maxSimilarUsers, setMaxSimilarUsers] = useState<number | null>(1000);
   const [maxRecommendations, setMaxRecommendations] = useState<number>(20);
   const [selectedGenres, setSelectedGenres] = useState<string[]>([]);
   const [maxPrice, setMaxPrice] = useState<string>('none');
@@ -399,9 +399,9 @@ export default function CollaborativeRecommendationsPage() {
                     className="w-full bg-gray-800 border border-gray-700 rounded-lg px-4 py-2.5 text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
                   >
                     <option value="none">No Limit</option>
-                    <option value={100}>100 users</option>
-                    <option value={200}>200 users</option>
                     <option value={500}>500 users</option>
+                    <option value={1000}>1000 users</option>
+                    <option value={10000}>10000 users</option>
                   </select>
                 </div>
 
