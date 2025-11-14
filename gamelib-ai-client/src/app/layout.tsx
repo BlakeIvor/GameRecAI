@@ -31,7 +31,9 @@ export default function RootLayout({
       >
         <AuthProvider>
           <Navigation />
-          {children}
+          <div className="page-fade-in">
+            {children}
+          </div>
         </AuthProvider>
       </body>
     </html>

@@ -1,8 +1,9 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import Link from 'next/link';
 import { useAuth } from '../contexts/AuthContext';
+import LoadingSpinner from '../components/LoadingSpinner';
 
 interface GameRecommendation {
   app_id: number;
@@ -28,20 +29,91 @@ interface RecommendationsResponse {
   games: GameRecommendation[];
 }
 
+interface CachedRecommendations {
+  data: RecommendationsResponse;
+  timestamp: number;
+  steamId: string;
+}
+
 export default function RecommendationsPage() {
   const { steamId, isLoggedIn, loading: authLoading } = useAuth();
   const [recommendations, setRecommendations] = useState<RecommendationsResponse | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [usingCache, setUsingCache] = useState(false);
+  const hasLoadedRef = useRef(false);
 
-  const fetchRecommendations = useCallback(async () => {
+  // Cache key for localStorage
+  const getCacheKey = () => `recommendations_${steamId}`;
+
+  // Load cached recommendations
+  const loadFromCache = (): boolean => {
+    try {
+      const cacheKey = getCacheKey();
+      const cached = localStorage.getItem(cacheKey);
+      
+      if (cached) {
+        const cachedData: CachedRecommendations = JSON.parse(cached);
+        
+        // Check if cache is for the same user
+        if (cachedData.steamId !== steamId) {
+          return false;
+        }
+
+        // Check if cache is not too old (e.g., 20 minutes)
+        const cacheAge = Date.now() - cachedData.timestamp;
+        const maxCacheAge = 20 * 60 * 1000; // 20 minutes
+        if (cacheAge > maxCacheAge) {
+          return false;
+        }
+
+        // Load cached data
+        setRecommendations(cachedData.data);
+        setUsingCache(true);
+        console.log('Loaded recommendations from cache');
+        return true;
+      }
+    } catch (err) {
+      console.error('Error loading recommendations cache:', err);
+    }
+    return false;
+  };
+
+  // Save recommendations to cache
+  const saveToCache = (data: RecommendationsResponse) => {
+    try {
+      const cacheKey = getCacheKey();
+      const dataToCache: CachedRecommendations = {
+        data,
+        timestamp: Date.now(),
+        steamId: steamId || '',
+      };
+      
+      localStorage.setItem(cacheKey, JSON.stringify(dataToCache));
+      console.log('Saved recommendations to cache');
+    } catch (err) {
+      console.error('Error saving recommendations cache:', err);
+    }
+  };
+
+  const fetchRecommendations = useCallback(async (bypassCache = false) => {
     if (!steamId) {
       setError('Steam ID not available. Please log in again.');
       return;
     }
 
+    // If not bypassing cache and we haven't loaded yet, try cache first
+    if (!bypassCache && !hasLoadedRef.current) {
+      const cacheLoaded = loadFromCache();
+      if (cacheLoaded) {
+        hasLoadedRef.current = true;
+        return;
+      }
+    }
+
     setLoading(true);
     setError(null);
+    setUsingCache(false);
 
     try {
       const response = await fetch(`http://localhost:8000/api/recommendations/test/${steamId}`, {
@@ -57,6 +129,10 @@ export default function RecommendationsPage() {
 
       const data = await response.json();
       setRecommendations(data);
+      
+      // Save to cache after successful fetch
+      saveToCache(data);
+      hasLoadedRef.current = true;
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to fetch recommendations');
     } finally {
@@ -66,10 +142,15 @@ export default function RecommendationsPage() {
 
   useEffect(() => {
     // Automatically fetch recommendations when component mounts and we have a Steam ID
-    if (steamId) {
-      fetchRecommendations();
+    if (steamId && !hasLoadedRef.current) {
+      fetchRecommendations(false);
     }
   }, [steamId, fetchRecommendations]);
+
+  const handleRefreshRecommendations = () => {
+    // Force fresh fetch bypassing cache
+    fetchRecommendations(true);
+  };
 
   const formatPrice = (price: string) => {
     if (price === 'Free' || price === 'Free to Play') {
@@ -81,7 +162,10 @@ export default function RecommendationsPage() {
   if (authLoading) {
     return (
       <main className="min-h-screen bg-black text-white flex items-center justify-center">
-        <div className="text-xl">Loading...</div>
+        <LoadingSpinner 
+          message="Loading..." 
+          size="large"
+        />
       </main>
     );
   }
@@ -159,10 +243,20 @@ export default function RecommendationsPage() {
           </div>
         </div>
 
-        {/* Refresh Button */}
-        <div className="flex justify-center mb-8">
+        {/* Cache indicator and Refresh Button */}
+        <div className="flex flex-col items-center gap-4 mb-8">
+          {usingCache && (
+            <div className="bg-green-900/20 border border-green-700/50 rounded-lg px-6 py-3 flex items-center gap-3">
+              <span className="text-green-400">💾</span>
+              <div>
+                <p className="text-green-300 text-sm font-medium">Recommendations loaded from cache</p>
+                <p className="text-green-400/70 text-xs">Generate new recommendations for fresh results</p>
+              </div>
+            </div>
+          )}
+          
           <button
-            onClick={fetchRecommendations}
+            onClick={handleRefreshRecommendations}
             disabled={loading}
             className="bg-blue-600 hover:bg-blue-700 disabled:bg-gray-600 text-white font-bold py-3 px-8 rounded-lg transition-colors flex items-center space-x-2 shadow-lg"
           >
@@ -173,7 +267,7 @@ export default function RecommendationsPage() {
               </>
             ) : (
               <>
-                <span>�</span>
+                <span>🔄</span>
                 <span>Generate New Recommendations</span>
               </>
             )}
@@ -186,7 +280,7 @@ export default function RecommendationsPage() {
             <h3 className="text-red-400 font-bold mb-2">⚠️ Unable to Load Recommendations</h3>
             <p className="text-gray-300 mb-4">{error}</p>
             <button
-              onClick={fetchRecommendations}
+              onClick={handleRefreshRecommendations}
               className="bg-red-600 hover:bg-red-700 text-white font-bold py-2 px-4 rounded transition-colors"
             >
               Retry Analysis
@@ -197,19 +291,10 @@ export default function RecommendationsPage() {
         {/* Loading State */}
         {loading && (
           <div className="flex flex-col items-center justify-center py-16">
-            <div className="relative">
-              <div className="animate-spin rounded-full h-16 w-16 border-b-2 border-blue-400 mb-4"></div>
-              <div className="absolute inset-0 flex items-center justify-center">
-                <span className="text-2xl">🎮</span>
-              </div>
-            </div>
-            <p className="text-gray-300 text-lg font-semibold">Analyzing Your Gaming Preferences...</p>
-            <p className="text-gray-500 text-sm mt-2">Processing your Steam library data</p>
-            <div className="flex items-center space-x-2 mt-4">
-              <div className="h-2 w-2 bg-blue-400 rounded-full animate-pulse"></div>
-              <div className="h-2 w-2 bg-blue-400 rounded-full animate-pulse" style={{animationDelay: '0.2s'}}></div>
-              <div className="h-2 w-2 bg-blue-400 rounded-full animate-pulse" style={{animationDelay: '0.4s'}}></div>
-            </div>
+            <LoadingSpinner 
+              message="Analyzing Your Gaming Preferences" 
+              size="large"
+            />
           </div>
         )}
 
@@ -340,13 +425,12 @@ export default function RecommendationsPage() {
                         {/* Bottom Actions */}
                         <div className="flex justify-between items-center mt-auto pt-4 border-t border-gray-700/50">
                           <div className="flex items-center space-x-4">
-                            <div className="flex items-center space-x-2 text-sm text-gray-400">
-                              <span>🎯</span>
-                              <span>AI Match Score: </span>
-                              <span className="text-green-400 font-bold">
-                                {85 + Math.floor(Math.random() * 15)}%
-                              </span>
-                            </div>
+                            {game.based_on && game.based_on.title && (
+                              <div className="flex items-center space-x-2 text-sm">
+                                <span className="text-gray-400">Based on:</span>
+                                <span className="text-blue-400 font-medium">{game.based_on.title}</span>
+                              </div>
+                            )}
                           </div>
 
                           {/* Steam Link */}
@@ -375,7 +459,7 @@ export default function RecommendationsPage() {
                 the better we become at finding games you'll love.
               </p>
               <button
-                onClick={fetchRecommendations}
+                onClick={handleRefreshRecommendations}
                 className="bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700 text-white font-bold py-3 px-8 rounded-lg transition-all duration-300 transform hover:scale-105"
               >
                 🔄 Generate Fresh Recommendations
@@ -395,7 +479,7 @@ export default function RecommendationsPage() {
             </p>
             <div className="space-y-4">
               <button
-                onClick={fetchRecommendations}
+                onClick={handleRefreshRecommendations}
                 className="bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 px-6 rounded-lg transition-colors mr-4"
               >
                 🔄 Try Again

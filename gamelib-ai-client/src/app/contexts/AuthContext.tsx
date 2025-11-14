@@ -30,18 +30,29 @@ export function AuthProvider({ children }: AuthProviderProps) {
       try {
         const storedSteamId = localStorage.getItem('steamId');
         const storedSteamName = localStorage.getItem('steamName');
+        const steamNameTimestamp = localStorage.getItem('steamNameTimestamp');
         console.log('AuthProvider: Retrieved from localStorage:', storedSteamId, storedSteamName);
         
         if (storedSteamId) {
           setSteamId(storedSteamId);
           console.log('AuthProvider: Set initial steamId from localStorage:', storedSteamId);
           
-          if (storedSteamName) {
-            setSteamName(storedSteamName);
-            console.log('AuthProvider: Set initial steamName from localStorage:', storedSteamName);
+          if (storedSteamName && steamNameTimestamp) {
+            // Check if cached name is still fresh (e.g., within 24 hours)
+            const cacheAge = Date.now() - parseInt(steamNameTimestamp);
+            const maxCacheAge = 24 * 60 * 60 * 1000; // 24 hours
+            
+            if (cacheAge < maxCacheAge) {
+              setSteamName(storedSteamName);
+              console.log('AuthProvider: Using cached steamName from localStorage:', storedSteamName);
+            } else {
+              // Cache expired, fetch fresh data
+              console.log('AuthProvider: steamName cache expired, fetching from API');
+              fetchSteamName(storedSteamId);
+            }
           } else {
-            // If we have steamId but no steamName, fetch it from API
-            console.log('AuthProvider: No steamName in localStorage, fetching from API');
+            // If we have steamId but no valid cached steamName, fetch it from API
+            console.log('AuthProvider: No valid cached steamName, fetching from API');
             fetchSteamName(storedSteamId);
           }
         }
@@ -73,10 +84,11 @@ export function AuthProvider({ children }: AuthProviderProps) {
         console.log('AuthProvider: Setting steamName state to:', steamName);
         setSteamName(steamName);
         
-        // Store in localStorage
+        // Store in localStorage with timestamp
         if (typeof window !== 'undefined') {
           localStorage.setItem('steamName', steamName);
-          console.log('AuthProvider: Stored steamName in localStorage');
+          localStorage.setItem('steamNameTimestamp', Date.now().toString());
+          console.log('AuthProvider: Stored steamName and timestamp in localStorage');
         }
       } else {
         console.warn('AuthProvider: No personaname found in API response');
@@ -116,7 +128,8 @@ export function AuthProvider({ children }: AuthProviderProps) {
       try {
         localStorage.removeItem('steamId');
         localStorage.removeItem('steamName');
-        console.log('AuthProvider: Removed Steam ID and name from localStorage');
+        localStorage.removeItem('steamNameTimestamp');
+        console.log('AuthProvider: Removed Steam ID, name, and timestamp from localStorage');
       } catch (error) {
         console.error('AuthProvider: Error removing from localStorage:', error);
       }

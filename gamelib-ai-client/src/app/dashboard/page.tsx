@@ -1,9 +1,10 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import { useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import { useAuth } from '../contexts/AuthContext';
+import LoadingSpinner from '../components/LoadingSpinner';
 
 interface SteamGame {
   appid: number;
@@ -33,11 +34,72 @@ interface ProfileData {
   playerSummary: SteamPlayerData | null;
 }
 
+interface CachedProfileData {
+  data: ProfileData;
+  timestamp: number;
+  steamId: string;
+}
+
 export default function DashboardPage() {
   const { steamId, steamName, isLoggedIn, login, logout, loading } = useAuth();
   const searchParams = useSearchParams();
   const [profileData, setProfileData] = useState<ProfileData | null>(null);
   const [profileLoading, setProfileLoading] = useState(false);
+  const [usingCache, setUsingCache] = useState(false);
+  const hasLoadedRef = useRef(false);
+
+  // Cache key for localStorage
+  const getCacheKey = () => `dashboard_profile_${steamId}`;
+
+  // Load cached profile data
+  const loadFromCache = (): boolean => {
+    try {
+      const cacheKey = getCacheKey();
+      const cached = localStorage.getItem(cacheKey);
+      
+      if (cached) {
+        const cachedData: CachedProfileData = JSON.parse(cached);
+        
+        // Check if cache is for the same user
+        if (cachedData.steamId !== steamId) {
+          return false;
+        }
+
+        // Check if cache is not too old (e.g., 15 minutes)
+        const cacheAge = Date.now() - cachedData.timestamp;
+        const maxCacheAge = 15 * 60 * 1000; // 15 minutes
+        if (cacheAge > maxCacheAge) {
+          return false;
+        }
+
+        // Load cached data
+        setProfileData(cachedData.data);
+        setUsingCache(true);
+        console.log('Loaded dashboard profile from cache');
+        return true;
+      }
+    } catch (err) {
+      console.error('Error loading dashboard cache:', err);
+    }
+    return false;
+  };
+
+  // Save profile data to cache
+  const saveToCache = (data: ProfileData) => {
+    try {
+      const cacheKey = getCacheKey();
+      const dataToCache: CachedProfileData = {
+        data,
+        timestamp: Date.now(),
+        steamId: steamId || '',
+      };
+      
+      localStorage.setItem(cacheKey, JSON.stringify(dataToCache));
+      console.log('Saved dashboard profile to cache');
+    } catch (err) {
+      console.error('Error saving dashboard cache:', err);
+    }
+  };
 
   useEffect(() => {
     console.log('Dashboard useEffect triggered');
@@ -72,8 +134,16 @@ export default function DashboardPage() {
 
   // Fetch Steam profile data when user is logged in
   useEffect(() => {
-    if (steamId && isLoggedIn) {
-      fetchSteamProfileData();
+    if (steamId && isLoggedIn && !hasLoadedRef.current) {
+      hasLoadedRef.current = true;
+      
+      // Try to load from cache first
+      const cacheLoaded = loadFromCache();
+      
+      if (!cacheLoaded) {
+        // No cache or cache invalid, fetch fresh data
+        fetchSteamProfileData();
+      }
     }
   }, [steamId, isLoggedIn]);
 
@@ -82,6 +152,7 @@ export default function DashboardPage() {
 
     console.log('Starting fetchSteamProfileData for steamId:', steamId);
     setProfileLoading(true);
+    setUsingCache(false);
     try {
       console.log('Making API calls to backend...');
       
@@ -169,11 +240,16 @@ export default function DashboardPage() {
 
         console.log('Final games with names:', topGamesWithNames);
 
-        setProfileData({
+        const finalProfileData = {
           totalGames: gamesArray.length,
           topGames: topGamesWithNames,
           playerSummary: playerData
-        });
+        };
+
+        setProfileData(finalProfileData);
+        
+        // Save to cache after successful fetch
+        saveToCache(finalProfileData);
       } else {
         console.error('No games data found in profile response');
       }
@@ -182,6 +258,13 @@ export default function DashboardPage() {
     } finally {
       setProfileLoading(false);
     }
+  };
+
+  const handleRefreshProfile = () => {
+    // Force a fresh fetch, bypassing cache
+    hasLoadedRef.current = false;
+    setUsingCache(false);
+    fetchSteamProfileData();
   };
 
   const formatPlaytime = (minutes: number) => {
@@ -211,7 +294,10 @@ export default function DashboardPage() {
   if (loading) {
     return (
       <main className="flex min-h-screen items-center justify-center bg-gradient-to-br from-gray-950 to-black">
-        <div className="text-white text-xl">Loading...</div>
+        <LoadingSpinner 
+          message="Loading Your Dashboard" 
+          size="large"
+        />
       </main>
     );
   }
@@ -299,7 +385,13 @@ export default function DashboardPage() {
                 <div className="flex justify-between items-center">
                   <span className="text-gray-400 text-sm">Games Owned:</span>
                   <span className="text-white text-sm font-medium">
-                    {profileLoading ? 'Loading...' : profileData ? profileData.totalGames : 'Loading...'}
+                    {profileLoading ? (
+                      <span className="inline-block bg-gray-700 h-5 w-12 rounded animate-pulse"></span>
+                    ) : profileData ? (
+                      profileData.totalGames
+                    ) : (
+                      <span className="inline-block bg-gray-700 h-5 w-12 rounded animate-pulse"></span>
+                    )}
                   </span>
                 </div>
                 <div className="flex justify-between items-center">
@@ -316,10 +408,18 @@ export default function DashboardPage() {
             
             <div className="bg-gray-900/50 rounded-lg p-4 border border-gray-700/30">
               <h3 className="text-green-400 font-semibold mb-3 text-sm uppercase tracking-wide">Top Games</h3>
-              <div className="space-y-3">
+              <div className="space-y-3 min-h-[180px]">
                 {profileLoading ? (
-                  <div className="text-center py-2">
-                    <span className="text-gray-500 text-xs">Fetching your most played games...</span>
+                  <div className="space-y-3">
+                    {[1, 2, 3].map((i) => (
+                      <div key={i} className="flex items-center justify-between animate-pulse">
+                        <div className="flex items-center">
+                          <div className="w-8 h-8 bg-gray-700 rounded mr-2"></div>
+                          <div className="h-4 bg-gray-700 rounded w-32"></div>
+                        </div>
+                        <div className="h-4 bg-gray-700 rounded w-16"></div>
+                      </div>
+                    ))}
                   </div>
                 ) : profileData && profileData.topGames.length > 0 ? (
                   profileData.topGames.slice(0, 3).map((game, index) => (
@@ -355,6 +455,27 @@ export default function DashboardPage() {
             </div>
           </div>
         </div>
+
+        {/* Cache indicator section */}
+        {usingCache && profileData && (
+          <div className="bg-green-900/20 border border-green-700/50 rounded-lg p-4 mb-8 flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <span className="text-green-400 text-xl">💾</span>
+              <div>
+                <p className="text-green-300 text-sm font-medium">Profile loaded from cache</p>
+                <p className="text-green-400/70 text-xs">Click refresh for the latest data</p>
+              </div>
+            </div>
+            <button
+              onClick={handleRefreshProfile}
+              disabled={profileLoading}
+              className="bg-blue-600 hover:bg-blue-700 disabled:bg-gray-600 text-white px-4 py-2 rounded-lg transition-colors flex items-center gap-2 text-sm font-medium"
+            >
+              <span>{profileLoading ? '⏳' : '🔄'}</span>
+              <span>{profileLoading ? 'Refreshing...' : 'Refresh Profile'}</span>
+            </button>
+          </div>
+        )}
 
         {/* Features Grid */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 mb-8">
