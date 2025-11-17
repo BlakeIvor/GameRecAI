@@ -46,7 +46,7 @@ interface CachedData {
   filters: {
     topNGames: number;
     minPlaytime: number;
-    maxSimilarUsers: number | null;
+    maxSimilarUsers: number;
     maxRecommendations: number;
     selectedGenres: string[];
     maxPrice: string;
@@ -72,7 +72,7 @@ export default function CollaborativeRecommendationsPage() {
   // Filter state
   const [topNGames, setTopNGames] = useState<number>(5);
   const [minPlaytime, setMinPlaytime] = useState<number>(60);
-  const [maxSimilarUsers, setMaxSimilarUsers] = useState<number | null>(1000);
+  const [maxSimilarUsers, setMaxSimilarUsers] = useState<number>(999999);
   const [maxRecommendations, setMaxRecommendations] = useState<number>(20);
   const [selectedGenres, setSelectedGenres] = useState<string[]>([]);
   const [maxPrice, setMaxPrice] = useState<string>('none');
@@ -210,12 +210,12 @@ export default function CollaborativeRecommendationsPage() {
       setError(null);
       setUsingCache(false);
 
-      const maxSimilarParam = maxSimilarUsers !== null ? `&max_similar_users=${maxSimilarUsers}` : '';
+      const maxSimilarParam = maxSimilarUsers !== 999999 ? `&max_similar_users=${maxSimilarUsers}` : '';
       const genresParam = selectedGenres.length > 0 ? selectedGenres.map(g => `&genres=${encodeURIComponent(g)}`).join('') : '';
       const maxPriceParam = maxPrice !== 'none' ? `&max_price=${maxPrice}` : '';
       
       const response = await fetch(
-        `http://localhost:8000/api/collaborative-recommendations/${steamId}?top_n_games=${topNGames}&min_playtime=${minPlaytime}${maxSimilarParam}&max_recommendations=${maxRecommendations}${genresParam}${maxPriceParam}`
+        `http://localhost:8000/api/collaborative-recommendations/${steamId}?top_n_games=${topNGames}&min_playtime=${minPlaytime}&max_similar_users=${maxSimilarUsers}&max_recommendations=${maxRecommendations}${genresParam}${maxPriceParam}`
       );
 
       if (!response.ok) {
@@ -351,7 +351,7 @@ export default function CollaborativeRecommendationsPage() {
                     Top Games to Match
                   </label>
                   <p className="text-xs text-gray-500 mb-2">
-                    Number of your most-played games used for finding similar users
+                    Number of your top games to consider
                   </p>
                   <select
                     value={topNGames}
@@ -394,11 +394,11 @@ export default function CollaborativeRecommendationsPage() {
                     Maximum similar users to analyze
                   </p>
                   <select
-                    value={maxSimilarUsers === null ? 'none' : maxSimilarUsers}
-                    onChange={(e) => setMaxSimilarUsers(e.target.value === 'none' ? null : Number(e.target.value))}
+                    value={maxSimilarUsers}
+                    onChange={(e) => setMaxSimilarUsers(Number(e.target.value))}
                     className="w-full bg-gray-800 border border-gray-700 rounded-lg px-4 py-2.5 text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
                   >
-                    <option value="none">No Limit</option>
+                    <option value={999999}>No Limit</option>
                     <option value={500}>500 users</option>
                     <option value={1000}>1000 users</option>
                     <option value={10000}>10000 users</option>

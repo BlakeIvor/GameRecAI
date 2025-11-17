@@ -195,14 +195,14 @@ export default function DashboardPage() {
           ...gameData
         }));
 
-        console.log('Games array sample:', gamesArray.slice(0, 3));
+        console.log('Games array sample:', gamesArray.slice(0, 5));
 
-        // Sort by playtime and get top 3
+        // Sort by playtime and get top 5
         const topGames = gamesArray
           .sort((a, b) => b.playtime_forever - a.playtime_forever)
-          .slice(0, 3);
+          .slice(0, 5);
 
-        console.log('Top 3 games by playtime:', topGames);
+        console.log('Top 5 games by playtime:', topGames);
 
         // Get game names for top games
         const topGamesWithNames = await Promise.all(
@@ -422,7 +422,7 @@ export default function DashboardPage() {
                     ))}
                   </div>
                 ) : profileData && profileData.topGames.length > 0 ? (
-                  profileData.topGames.slice(0, 3).map((game, index) => (
+                  profileData.topGames.slice(0, 5).map((game, index) => (
                     <div key={game.appid} className="flex items-center justify-between">
                       <div className="flex items-center">
                         <div className="w-8 h-8 bg-gray-700 rounded mr-2 flex items-center justify-center overflow-hidden">

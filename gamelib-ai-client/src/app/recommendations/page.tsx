@@ -214,35 +214,7 @@ export default function RecommendationsPage() {
           <p className="text-xl text-gray-300 max-w-2xl mx-auto">
             Discover your next favorite games with intelligent recommendations based on your Steam library
           </p>
-          <div className="bg-gray-800 rounded-lg p-4 mt-6 max-w-3xl mx-auto">
-            <p className="text-sm text-gray-400 mb-2">
-              <span className="text-blue-400 font-semibold">Personalized for:</span> Steam ID {steamId}
-            </p>
-            <p className="text-xs text-gray-500">
-              Our AI analyzes your gaming patterns, preferences, and library to suggest games you'll love
-            </p>
-          </div>
         </div>
-
-        {/* Analysis Status Banner */}
-        <div className="bg-gradient-to-r from-blue-900/30 to-purple-900/30 border border-blue-800/50 rounded-lg p-6 mb-8">
-          <div className="flex items-center justify-between">
-            <div>
-              <h3 className="text-lg font-semibold text-blue-400 mb-2">🧠 AI Analysis Status</h3>
-              <p className="text-gray-300 text-sm">
-                Your recommendations are powered by our advanced [IN PROGRESS] algorithms.
-                Full preference analysis is continuously improving with each interaction.
-              </p>
-            </div>
-            <div className="text-right">
-              <div className="bg-blue-600 text-white px-3 py-1 rounded-full text-xs font-semibold">
-                BETA
-              </div>
-              <p className="text-xs text-gray-400 mt-1">Early Access</p>
-            </div>
-          </div>
-        </div>
-
         {/* Cache indicator and Refresh Button */}
         <div className="flex flex-col items-center gap-4 mb-8">
           {usingCache && (
