@@ -125,8 +125,8 @@ export default function Navigation() {
                 </button>
               </>
             ) : !loading ? (
-              <Link 
-                href="/login"
+              <button
+                onClick={() => window.location.href = 'http://localhost:8000/api/auth/steam/login'}
                 className="
                   relative px-6 py-2 rounded-lg text-sm font-medium
                   bg-gradient-to-r from-blue-600 to-purple-600
@@ -147,7 +147,7 @@ export default function Navigation() {
                   </svg>
                   <span>Login with Steam</span>
                 </span>
-              </Link>
+              </button>
             ) : (
               <div className="w-24 h-10 bg-gray-800/50 rounded-lg animate-pulse"></div>
             )}

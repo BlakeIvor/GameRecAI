@@ -72,7 +72,7 @@ export default function CollaborativeRecommendationsPage() {
   // Filter state
   const [topNGames, setTopNGames] = useState<number>(5);
   const [minPlaytime, setMinPlaytime] = useState<number>(60);
-  const [maxSimilarUsers, setMaxSimilarUsers] = useState<number>(999999);
+  const [maxSimilarUsers, setMaxSimilarUsers] = useState<number>(1000);
   const [maxRecommendations, setMaxRecommendations] = useState<number>(20);
   const [selectedGenres, setSelectedGenres] = useState<string[]>([]);
   const [maxPrice, setMaxPrice] = useState<string>('none');
