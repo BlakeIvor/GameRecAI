@@ -85,7 +85,7 @@ export default function CollaborativeRecommendationsPage() {
   const availableGenres = [
     'Action', 'Adventure', 'RPG', 'Strategy', 'Simulation', 'Sports',
     'Racing', 'Indie', 'Casual', 'Puzzle', 'Shooter', 'Platformer',
-    'MMO', 'Fighting', 'Horror', 'Survival'
+    'Massively Multiplayer', 'Fighting', 'Horror', 'Survival'
   ];
 
   // Cache key for localStorage

@@ -217,15 +217,6 @@ export default function RecommendationsPage() {
         </div>
         {/* Cache indicator and Refresh Button */}
         <div className="flex flex-col items-center gap-4 mb-8">
-          {usingCache && (
-            <div className="bg-green-900/20 border border-green-700/50 rounded-lg px-6 py-3 flex items-center gap-3">
-              <span className="text-green-400">💾</span>
-              <div>
-                <p className="text-green-300 text-sm font-medium">Recommendations loaded from cache</p>
-                <p className="text-green-400/70 text-xs">Generate new recommendations for fresh results</p>
-              </div>
-            </div>
-          )}
           
           <button
             onClick={handleRefreshRecommendations}
