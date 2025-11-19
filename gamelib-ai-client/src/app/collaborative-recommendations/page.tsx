@@ -5,14 +5,26 @@ import { useAuth } from '../contexts/AuthContext';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import LoadingSpinner from '../components/LoadingSpinner';
+import AutocompleteDropdown from '../components/AutocompleteDropdown';
+import GameDetailModal from '../components/GameDetailModal';
 
 interface GameRecommendation {
   appid: number;
   name: string;
   header_image: string;
   short_description: string;
+  detailed_description?: string;
   genres: string[];
+  languages: string[];
+  categories: string[];
+  tags: string[];
+  platforms: { [key: string]: boolean };
+  release_date: string;
+  developers: string[];
+  publishers: string[];
   price: string;
+  positive: number;
+  negative: number;
   recommendation_score: number;
   recommended_by_count: number;
   steam_url: string;
@@ -20,6 +32,7 @@ interface GameRecommendation {
 
 interface SimilarUser {
   steam_id: number;
+  persona_name: string;
   similarity_score: number;
   top_games_overlap: number;
   total_games_overlap: number;
@@ -48,7 +61,15 @@ interface CachedData {
     minPlaytime: number;
     maxSimilarUsers: number;
     maxRecommendations: number;
-    selectedGenres: string[];
+    selectedSteamGenres: string[];
+    selectedLanguages: string[];
+    selectedCategories: string[];
+    selectedTags: string[];
+    selectedPlatforms: string[];
+    minReleaseDate: string;
+    maxReleaseDate: string;
+    minPositiveReviews: string;
+    minNegativeReviews: string;
     maxPrice: string;
   };
   timestamp: number;
@@ -74,19 +95,91 @@ export default function CollaborativeRecommendationsPage() {
   const [minPlaytime, setMinPlaytime] = useState<number>(60);
   const [maxSimilarUsers, setMaxSimilarUsers] = useState<number>(1000);
   const [maxRecommendations, setMaxRecommendations] = useState<number>(20);
-  const [selectedGenres, setSelectedGenres] = useState<string[]>([]);
+  const [selectedSteamGenres, setSelectedSteamGenres] = useState<string[]>([]);
+  const [selectedLanguages, setSelectedLanguages] = useState<string[]>([]);
+  const [selectedCategories, setSelectedCategories] = useState<string[]>([]);
+  const [selectedTags, setSelectedTags] = useState<string[]>([]);
+  const [selectedPlatforms, setSelectedPlatforms] = useState<string[]>([]);
+  const [sortBy, setSortBy] = useState<string>('recommendation_score');
+  const [selectedGame, setSelectedGame] = useState<GameRecommendation | null>(null);
+  const [minReleaseDate, setMinReleaseDate] = useState<string>('');
+  const [maxReleaseDate, setMaxReleaseDate] = useState<string>('');
+  const [minPositiveReviews, setMinPositiveReviews] = useState<string>('');
+  const [minNegativeReviews, setMinNegativeReviews] = useState<string>('');
   const [maxPrice, setMaxPrice] = useState<string>('none');
   const [showFilters, setShowFilters] = useState(false);
 
   // Use ref to track if initial load has been done
   const hasLoadedRef = useRef(false);
 
-  // Available genres (common Steam genres)
-  const availableGenres = [
-    'Action', 'Adventure', 'RPG', 'Strategy', 'Simulation', 'Sports',
-    'Racing', 'Indie', 'Casual', 'Puzzle', 'Shooter', 'Platformer',
-    'Massively Multiplayer', 'Fighting', 'Horror', 'Survival'
+  // Fetch available tags from backend
+  useEffect(() => {
+    const fetchTags = async () => {
+      try {
+        const response = await fetch('http://localhost:8000/api/tags');
+        if (response.ok) {
+          const data = await response.json();
+          setAvailableTags(data.tags || []);
+        }
+      } catch (error) {
+        console.error('Error fetching tags:', error);
+      }
+    };
+
+    fetchTags();
+    // Refresh tags every 30 seconds to catch new additions
+    const interval = setInterval(fetchTags, 30000);
+    return () => clearInterval(interval);
+  }, []);
+
+  // Available Steam genres (official Steam genres)
+  const availableSteamGenres = [
+    "Action",
+    "Adventure",
+    "Casual",
+    "Indie",
+    "Massively Multiplayer",
+    "Racing",
+    "RPG",
+    "Simulation",
+    "Sports",
+    "Strategy",
+    "Early Access",
+    "Free to Play"
   ];
+
+  // Available languages (common languages on Steam)
+  const availableLanguages = [
+    "English", "French", "German", "Spanish - Spain", "Spanish - Latin America",
+    "Italian", "Portuguese", "Portuguese - Brazil", "Russian", "Japanese",
+    "Korean", "Chinese (Simplified)", "Chinese (Traditional)", "Polish",
+    "Turkish", "Arabic", "Dutch", "Swedish", "Norwegian", "Danish"
+  ];
+
+  // Available Steam categories
+  const availableCategories = [
+    "Single-player", "Multi-player", "MMO", "PvP",
+    "Shared/Split Screen PvP", "Shared/Split Screen Co-op", "Shared/Split Screen",
+    "Online PvP", "LAN PvP", "Co-op", "Online Co-op", "LAN Co-op",
+    "Steam Achievements", "Full controller support", "Steam Trading Cards",
+    "Captions available", "Steam Workshop", "Steam Timeline",
+    "Camera Comfort", "Color Alternatives", "Custom Volume Controls",
+    "Adjustable Difficulty", "Adjustable Text Size", "Playable without Timed Input",
+    "Stereo Sound", "Surround Sound", "Steam Cloud",
+    "Valve Anti-Cheat enabled", "Stats", "Includes Source SDK",
+    "Includes level editor", "Commentary available",
+    "Remote Play on Phone", "Remote Play on Tablet", "Remote Play on TV",
+    "Remote Play Together", "Family Sharing",
+    "Keyboard Only Option", "Mouse Only Option",
+    "Save Anytime", "Subtitle Options", "Touch Only Option",
+    "Partial Controller Support"
+  ];
+
+  // Available platforms
+  const availablePlatforms = ["Windows", "Mac", "Linux"];
+
+  // Available tags (fetched from backend)
+  const [availableTags, setAvailableTags] = useState<string[]>([]);
 
   // Cache key for localStorage
   const getCacheKey = () => `collab_recs_${steamId}`;
@@ -99,7 +192,15 @@ export default function CollaborativeRecommendationsPage() {
       cachedFilters.maxSimilarUsers === maxSimilarUsers &&
       cachedFilters.maxRecommendations === maxRecommendations &&
       cachedFilters.maxPrice === maxPrice &&
-      JSON.stringify(cachedFilters.selectedGenres.sort()) === JSON.stringify(selectedGenres.sort())
+      cachedFilters.minReleaseDate === minReleaseDate &&
+      cachedFilters.maxReleaseDate === maxReleaseDate &&
+      cachedFilters.minPositiveReviews === minPositiveReviews &&
+      cachedFilters.minNegativeReviews === minNegativeReviews &&
+      JSON.stringify(cachedFilters.selectedSteamGenres.sort()) === JSON.stringify(selectedSteamGenres.sort()) &&
+      JSON.stringify(cachedFilters.selectedLanguages.sort()) === JSON.stringify(selectedLanguages.sort()) &&
+      JSON.stringify(cachedFilters.selectedCategories.sort()) === JSON.stringify(selectedCategories.sort()) &&
+      JSON.stringify(cachedFilters.selectedTags.sort()) === JSON.stringify(selectedTags.sort()) &&
+      JSON.stringify(cachedFilters.selectedPlatforms.sort()) === JSON.stringify(selectedPlatforms.sort())
     );
   };
 
@@ -139,7 +240,15 @@ export default function CollaborativeRecommendationsPage() {
         setMinPlaytime(cachedData.filters.minPlaytime);
         setMaxSimilarUsers(cachedData.filters.maxSimilarUsers);
         setMaxRecommendations(cachedData.filters.maxRecommendations);
-        setSelectedGenres(cachedData.filters.selectedGenres);
+        setSelectedSteamGenres(cachedData.filters.selectedSteamGenres);
+        setSelectedLanguages(cachedData.filters.selectedLanguages);
+        setSelectedCategories(cachedData.filters.selectedCategories);
+        setSelectedTags(cachedData.filters.selectedTags);
+        setSelectedPlatforms(cachedData.filters.selectedPlatforms);
+        setMinReleaseDate(cachedData.filters.minReleaseDate);
+        setMaxReleaseDate(cachedData.filters.maxReleaseDate);
+        setMinPositiveReviews(cachedData.filters.minPositiveReviews);
+        setMinNegativeReviews(cachedData.filters.minNegativeReviews);
         setMaxPrice(cachedData.filters.maxPrice);
         
         setUsingCache(true);
@@ -169,7 +278,15 @@ export default function CollaborativeRecommendationsPage() {
           minPlaytime,
           maxSimilarUsers,
           maxRecommendations,
-          selectedGenres,
+          selectedSteamGenres,
+          selectedLanguages,
+          selectedCategories,
+          selectedTags,
+          selectedPlatforms,
+          minReleaseDate,
+          maxReleaseDate,
+          minPositiveReviews,
+          minNegativeReviews,
           maxPrice,
         },
         timestamp: Date.now(),
@@ -210,12 +327,41 @@ export default function CollaborativeRecommendationsPage() {
       setError(null);
       setUsingCache(false);
 
-      const maxSimilarParam = maxSimilarUsers !== 999999 ? `&max_similar_users=${maxSimilarUsers}` : '';
-      const genresParam = selectedGenres.length > 0 ? selectedGenres.map(g => `&genres=${encodeURIComponent(g)}`).join('') : '';
-      const maxPriceParam = maxPrice !== 'none' ? `&max_price=${maxPrice}` : '';
+      // Build query parameters
+      const params = new URLSearchParams();
+      params.append('top_n_games', topNGames.toString());
+      params.append('min_playtime', minPlaytime.toString());
+      params.append('max_similar_users', maxSimilarUsers.toString());
+      params.append('max_recommendations', maxRecommendations.toString());
+      
+      // Add steam_genres
+      selectedSteamGenres.forEach(genre => params.append('steam_genres', genre));
+      
+      // Add languages
+      selectedLanguages.forEach(lang => params.append('languages', lang));
+      
+      // Add steam_categories
+      selectedCategories.forEach(cat => params.append('steam_categories', cat));
+      
+      // Add tags
+      selectedTags.forEach(tag => params.append('tags', tag));
+      
+      // Add platforms
+      selectedPlatforms.forEach(platform => params.append('platforms', platform.toLowerCase()));
+      
+      // Add release dates
+      if (minReleaseDate) params.append('min_release_date', minReleaseDate);
+      if (maxReleaseDate) params.append('max_release_date', maxReleaseDate);
+      
+      // Add review filters
+      if (minPositiveReviews) params.append('min_positive_reviews', minPositiveReviews);
+      if (minNegativeReviews) params.append('min_negative_reviews', minNegativeReviews);
+      
+      // Add price filter
+      if (maxPrice !== 'none') params.append('max_price', maxPrice);
       
       const response = await fetch(
-        `http://localhost:8000/api/collaborative-recommendations/${steamId}?top_n_games=${topNGames}&min_playtime=${minPlaytime}&max_similar_users=${maxSimilarUsers}&max_recommendations=${maxRecommendations}${genresParam}${maxPriceParam}`
+        `http://localhost:8000/api/collaborative-recommendations/${steamId}?${params.toString()}`
       );
 
       if (!response.ok) {
@@ -262,12 +408,69 @@ export default function CollaborativeRecommendationsPage() {
     fetchRecommendations();
   };
 
-  const toggleGenre = (genre: string) => {
-    setSelectedGenres(prev =>
+  const toggleSteamGenre = (genre: string) => {
+    setSelectedSteamGenres(prev =>
       prev.includes(genre)
         ? prev.filter(g => g !== genre)
         : [...prev, genre]
     );
+  };
+
+  const toggleLanguage = (language: string) => {
+    setSelectedLanguages(prev =>
+      prev.includes(language)
+        ? prev.filter(l => l !== language)
+        : [...prev, language]
+    );
+  };
+
+  const toggleCategory = (category: string) => {
+    setSelectedCategories(prev =>
+      prev.includes(category)
+        ? prev.filter(c => c !== category)
+        : [...prev, category]
+    );
+  };
+
+  const toggleTag = (tag: string) => {
+    setSelectedTags(prev =>
+      prev.includes(tag)
+        ? prev.filter(t => t !== tag)
+        : [...prev, tag]
+    );
+  };
+
+  const togglePlatform = (platform: string) => {
+    setSelectedPlatforms(prev =>
+      prev.includes(platform)
+        ? prev.filter(p => p !== platform)
+        : [...prev, platform]
+    );
+  };
+
+  // Sort recommendations based on selected criteria
+  const sortedRecommendations = [...recommendations].sort((a, b) => {
+    if (sortBy === 'positive_reviews') {
+      return (b.positive || 0) - (a.positive || 0);
+    } else if (sortBy === 'recommendation_score') {
+      return b.recommendation_score - a.recommendation_score;
+    } else if (sortBy === 'recommended_by_count') {
+      return b.recommended_by_count - a.recommended_by_count;
+    }
+    return 0;
+  });
+
+  // Calculate grid columns based on number of recommendations
+  const getGridColumns = () => {
+    const count = recommendations.length;
+    if (count === 0) return 'grid-cols-1';
+    if (count === 1) return 'grid-cols-1';
+    if (count === 2) return 'grid-cols-2';
+    if (count <= 5) return 'grid-cols-2 lg:grid-cols-2';
+    if (count <= 10) return 'grid-cols-2 lg:grid-cols-2';
+    if (count <= 15) return 'grid-cols-2 md:grid-cols-3 lg:grid-cols-3';
+    if (count <= 20) return 'grid-cols-2 md:grid-cols-3 lg:grid-cols-4';
+    return 'grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5';
   };
 
   if (authLoading || loading) {
@@ -318,8 +521,8 @@ export default function CollaborativeRecommendationsPage() {
         </div>
 
         {/* Filter Panel */}
-        <div className="bg-gradient-to-r from-gray-900 via-gray-850 to-gray-900 rounded-xl p-6 mb-8 border border-gray-700/50">
-          <div className="flex items-center justify-between mb-4">
+        <div className="bg-gradient-to-r from-gray-900 via-gray-850 to-gray-900 rounded-xl p-4 mb-6 border border-gray-700/50 transition-all duration-300 hover:shadow-lg">
+          <div className="flex items-center justify-between mb-3">
             <div className="flex items-center gap-3">
               <span className="text-2xl">⚙️</span>
               <h2 className="text-xl font-bold text-white">Recommendation Settings</h2>
@@ -343,8 +546,8 @@ export default function CollaborativeRecommendationsPage() {
           </div>
 
           {showFilters && (
-            <div className="space-y-6 pt-4 border-t border-gray-700/50">
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+            <div className="space-y-6 pt-4 border-t border-gray-700/50 animate-fadeIn">
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
                 {/* Top N Games */}
                 <div className="space-y-2">
                   <label className="block text-sm font-medium text-gray-300">
@@ -426,84 +629,172 @@ export default function CollaborativeRecommendationsPage() {
                 </div>
               </div>
 
-              {/* Genre and Price Filters */}
-              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 pt-4 border-t border-gray-700/30">
-                {/* Genre Filter */}
-                <div className="space-y-2">
-                  <label className="block text-sm font-medium text-gray-300 mb-2">
-                    Filter by Genre
-                  </label>
-                  <p className="text-xs text-gray-500 mb-3">
-                    Select genres to filter recommendations (select multiple)
-                  </p>
-                  <div className="bg-gray-800 border border-gray-700 rounded-lg p-4 max-h-48 overflow-y-auto">
-                    <div className="grid grid-cols-2 gap-2">
-                      {availableGenres.map((genre) => (
-                        <label
-                          key={genre}
-                          className="flex items-center space-x-2 cursor-pointer hover:bg-gray-700/50 p-2 rounded transition-colors"
-                        >
-                          <input
-                            type="checkbox"
-                            checked={selectedGenres.includes(genre)}
-                            onChange={() => toggleGenre(genre)}
-                            className="w-4 h-4 text-blue-600 bg-gray-700 border-gray-600 rounded focus:ring-blue-500 focus:ring-2"
-                          />
-                          <span className="text-sm text-gray-300">{genre}</span>
-                        </label>
-                      ))}
-                    </div>
-                  </div>
-                  {selectedGenres.length > 0 && (
-                    <div className="flex flex-wrap gap-2 mt-2">
-                      {selectedGenres.map((genre) => (
-                        <span
-                          key={genre}
-                          className="bg-blue-600/30 text-blue-300 text-xs px-3 py-1 rounded-full flex items-center gap-1"
-                        >
-                          {genre}
-                          <button
-                            onClick={() => toggleGenre(genre)}
-                            className="hover:text-white"
-                          >
-                            ×
-                          </button>
-                        </span>
-                      ))}
-                    </div>
-                  )}
+              {/* Advanced Filters Section */}
+              <div className="space-y-4 pt-4 border-t border-gray-700/30">
+                
+                {/* Steam Genres, Languages, Categories, Tags - Using Autocomplete Dropdowns */}
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                  
+                  {/* Steam Genres Filter */}
+                  <AutocompleteDropdown
+                    label="Filter by Steam Genre"
+                    description="Official Steam genres (select multiple)"
+                    options={availableSteamGenres}
+                    selectedValues={selectedSteamGenres}
+                    onToggle={toggleSteamGenre}
+                    placeholder="Select genres..."
+                    tagColor="blue"
+                  />
+
+                  {/* Languages Filter */}
+                  <AutocompleteDropdown
+                    label="Filter by Language"
+                    description="Game language support (select multiple)"
+                    options={availableLanguages}
+                    selectedValues={selectedLanguages}
+                    onToggle={toggleLanguage}
+                    placeholder="Select languages..."
+                    tagColor="green"
+                  />
+
+                  {/* Steam Categories Filter */}
+                  <AutocompleteDropdown
+                    label="Filter by Steam Category"
+                    description="Game features and modes (select multiple)"
+                    options={availableCategories}
+                    selectedValues={selectedCategories}
+                    onToggle={toggleCategory}
+                    placeholder="Select categories..."
+                    tagColor="purple"
+                  />
+
+                  {/* Tags Filter */}
+                  <AutocompleteDropdown
+                    label="Filter by Tags"
+                    description="SteamSpy tags (live updated)"
+                    options={availableTags}
+                    selectedValues={selectedTags}
+                    onToggle={toggleTag}
+                    placeholder="Select tags..."
+                    tagColor="blue"
+                  />
                 </div>
 
-                {/* Price Filter */}
-                <div className="space-y-2">
-                  <label className="block text-sm font-medium text-gray-300">
-                    Maximum Price
-                  </label>
-                  <p className="text-xs text-gray-500 mb-2">
-                    Only show games under this price (USD)
-                  </p>
-                  <select
-                    value={maxPrice}
-                    onChange={(e) => setMaxPrice(e.target.value)}
-                    className="w-full bg-gray-800 border border-gray-700 rounded-lg px-4 py-2.5 text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
-                  >
-                    <option value="none">No Limit</option>
-                    <option value="0">Free Only</option>
-                    <option value="5">Under $5</option>
-                    <option value="10">Under $10</option>
-                    <option value="20">Under $20</option>
-                    <option value="30">Under $30</option>
-                    <option value="40">Under $40</option>
-                    <option value="60">Under $60</option>
-                  </select>
-                  {maxPrice !== 'none' && (
-                    <div className="mt-2 text-xs text-green-400 flex items-center gap-1">
-                      <span>💰</span>
-                      <span>
-                        Showing games {maxPrice === '0' ? 'that are free' : `under $${maxPrice}`}
-                      </span>
+                {/* Bottom row: Platforms, Release Date, Reviews, Price */}
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                  
+                  {/* Platforms Filter - Autocomplete Dropdown */}
+                  <AutocompleteDropdown
+                    label="Filter by Platform"
+                    description="Operating system compatibility"
+                    options={availablePlatforms}
+                    selectedValues={selectedPlatforms}
+                    onToggle={togglePlatform}
+                    placeholder="Select platforms..."
+                    tagColor="blue"
+                  />
+
+                  {/* Release Date Filter */}
+                  <div className="space-y-2">
+                    <label className="block text-sm font-medium text-gray-300 mb-2">
+                      Release Date Range
+                    </label>
+                    <p className="text-xs text-gray-500 mb-3">
+                      Filter games by release date
+                    </p>
+                    <div className="space-y-2">
+                      <div>
+                        <label className="text-xs text-gray-400 mb-1 block">From:</label>
+                        <input
+                          type="date"
+                          value={minReleaseDate}
+                          onChange={(e) => setMinReleaseDate(e.target.value)}
+                          className="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-white text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                        />
+                      </div>
+                      <div>
+                        <label className="text-xs text-gray-400 mb-1 block">To:</label>
+                        <input
+                          type="date"
+                          value={maxReleaseDate}
+                          onChange={(e) => setMaxReleaseDate(e.target.value)}
+                          className="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-white text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                        />
+                      </div>
                     </div>
-                  )}
+                  </div>
+
+                  {/* Review Filters */}
+                  <div className="space-y-2">
+                    <label className="block text-sm font-medium text-gray-300 mb-2">
+                      Minimum Reviews
+                    </label>
+                    <p className="text-xs text-gray-500 mb-3">
+                      Filter by review counts
+                    </p>
+                    <div className="space-y-2">
+                      <div>
+                        <label className="text-xs text-gray-400 mb-1 block">Positive (min):</label>
+                        <input
+                          type="number"
+                          value={minPositiveReviews}
+                          onChange={(e) => setMinPositiveReviews(e.target.value)}
+                          placeholder="e.g., 1000"
+                          className="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-white text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                        />
+                      </div>
+                      <div>
+                        <label className="text-xs text-gray-400 mb-1 block">Negative (min):</label>
+                        <input
+                          type="number"
+                          value={minNegativeReviews}
+                          onChange={(e) => setMinNegativeReviews(e.target.value)}
+                          placeholder="e.g., 100"
+                          className="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-white text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                        />
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Price Filter */}
+                  <div className="space-y-2">
+                    <label className="block text-sm font-medium text-gray-300 mb-2">
+                      Maximum Price
+                    </label>
+                    <p className="text-xs text-gray-500 mb-3">
+                      Only show games under this price (USD)
+                    </p>
+                    <div className="space-y-2">
+                      <div>
+                        <label className="text-xs text-gray-400 mb-1 block">Max Price ($):</label>
+                        <input
+                          type="text"
+                          value={maxPrice === 'none' ? '' : maxPrice}
+                          onChange={(e) => {
+                            const value = e.target.value;
+                            // Allow empty, 'none', or valid numbers (including decimals)
+                            if (value === '' || value === 'none') {
+                              setMaxPrice('none');
+                            } else if (/^\d*\.?\d*$/.test(value)) {
+                              setMaxPrice(value);
+                            }
+                          }}
+                          placeholder="e.g., 9.99 or leave empty"
+                          className="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-white text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                        />
+                      </div>
+                      <div className="text-xs text-gray-400">
+                        {maxPrice === 'none' || maxPrice === '' ? (
+                          <span>No price limit</span>
+                        ) : (
+                          <span className="text-green-400 flex items-center gap-1">
+                            <span>💰</span>
+                            <span>Max: ${maxPrice}</span>
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                  </div>
                 </div>
               </div>
 
@@ -533,8 +824,8 @@ export default function CollaborativeRecommendationsPage() {
 
         {/* Stats Section */}
         {stats && (
-          <div className="bg-gray-900 rounded-lg p-6 mb-8">
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
+          <div className="bg-gray-900 rounded-lg p-4 mb-6 transition-all duration-300 hover:shadow-lg">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               <div>
                 <h3 className="text-gray-400 text-sm mb-1">Users Analyzed</h3>
                 <p className="text-2xl font-bold">{stats.totalUsersAnalyzed}</p>
@@ -570,15 +861,33 @@ export default function CollaborativeRecommendationsPage() {
 
         {/* Recommendations Grid */}
         {recommendations.length > 0 ? (
-          <div>
-            <h2 className="text-2xl font-bold mb-6">
-              Recommended Games ({recommendations.length})
-            </h2>
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {recommendations.map((game) => (
+          <div className="animate-fadeIn">
+            <div className="flex items-center justify-between mb-6">
+              <h2 className="text-2xl font-bold">
+                Recommended Games ({recommendations.length})
+              </h2>
+              <div className="flex items-center gap-2">
+                <label htmlFor="sort-select" className="text-sm text-gray-400">
+                  Sort by:
+                </label>
+                <select
+                  id="sort-select"
+                  value={sortBy}
+                  onChange={(e) => setSortBy(e.target.value)}
+                  className="bg-gray-800 text-white border border-gray-700 rounded px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                >
+                  <option value="recommendation_score">Recommendation Score</option>
+                  <option value="positive_reviews">Positive Reviews</option>
+                  <option value="recommended_by_count">Recommended By Count</option>
+                </select>
+              </div>
+            </div>
+            <div className={`grid ${getGridColumns()} gap-4 transition-all duration-300`}>
+              {sortedRecommendations.map((game) => (
                 <div
                   key={game.appid}
-                  className="bg-gray-900 rounded-lg overflow-hidden hover:bg-gray-800 transition-colors"
+                  onClick={() => setSelectedGame(game)}
+                  className="bg-gray-900 rounded-lg overflow-hidden hover:bg-gray-800 transition-all duration-300 hover:scale-105 hover:shadow-xl cursor-pointer"
                 >
                   {/* Game Image */}
                   {game.header_image && (
@@ -614,8 +923,20 @@ export default function CollaborativeRecommendationsPage() {
                       {game.short_description || 'No description available'}
                     </p>
 
+                    {/* Reviews */}
+                    <div className="flex items-center gap-4 text-sm mb-4">
+                      <div className="flex items-center gap-1">
+                        <span className="text-green-400">▲</span>
+                        <span className="text-gray-400">{(game.positive || 0).toLocaleString()}</span>
+                      </div>
+                      <div className="flex items-center gap-1">
+                        <span className="text-red-400">▼</span>
+                        <span className="text-gray-400">{(game.negative || 0).toLocaleString()}</span>
+                      </div>
+                    </div>
+
                     {/* Stats */}
-                    <div className="flex items-center justify-between mb-4 text-sm">
+                    <div className="flex items-center justify-between text-sm mb-4">
                       <div className="text-gray-400">
                         Recommended by{' '}
                         <span className="text-white font-semibold">
@@ -634,6 +955,7 @@ export default function CollaborativeRecommendationsPage() {
                         href={game.steam_url}
                         target="_blank"
                         rel="noopener noreferrer"
+                        onClick={(e) => e.stopPropagation()}
                         className="flex-1 bg-blue-600 hover:bg-blue-700 text-white font-semibold py-2 px-4 rounded text-center transition-colors"
                       >
                         View on Steam
@@ -658,14 +980,28 @@ export default function CollaborativeRecommendationsPage() {
 
         {/* Similar Users Section */}
         {similarUsers.length > 0 && (
-          <div className="mt-12">
-            <h2 className="text-2xl font-bold mb-6">Top 10 Similar Users</h2>
-            <div className="bg-gray-900 rounded-lg overflow-hidden">
+          <div className="mt-8 animate-fadeIn">
+            <div className="mb-4">
+              <h2 className="text-2xl font-bold mb-2">Top 10 Similar Users</h2>
+              <p className="text-gray-400 text-sm">
+                These users have the most similar gaming preferences to you. Similarity is calculated based on:
+                <span className="block mt-1 ml-4">
+                  • <strong>Top Games Overlap:</strong> Number of your favorite games they also play (weighted 10x)
+                </span>
+                <span className="block ml-4">
+                  • <strong>Total Games Overlap:</strong> Total number of games you both own
+                </span>
+                <span className="block mt-1 text-xs text-gray-500">
+                  Similarity Score = (Top Games Overlap × 10) + Total Games Overlap
+                </span>
+              </p>
+            </div>
+            <div className="bg-gray-900 rounded-lg overflow-hidden transition-all duration-300 hover:shadow-lg">
               <table className="w-full">
                 <thead className="bg-gray-800">
                   <tr>
                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider">
-                      Steam ID
+                      Steam Name
                     </th>
                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider">
                       Similarity Score
@@ -680,9 +1016,16 @@ export default function CollaborativeRecommendationsPage() {
                 </thead>
                 <tbody className="divide-y divide-gray-800">
                   {similarUsers.slice(0, 10).map((user, index) => (
-                    <tr key={index} className="hover:bg-gray-800/50">
+                    <tr key={index} className="hover:bg-gray-800/50 transition-colors duration-200">
                       <td className="px-6 py-4 whitespace-nowrap text-sm">
-                        {user.steam_id}
+                        <a
+                          href={`https://steamcommunity.com/id/${user.persona_name}`}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="font-medium text-blue-400 hover:text-blue-300 hover:underline transition-colors"
+                        >
+                          {user.persona_name}
+                        </a>
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm font-semibold text-blue-400">
                         {user.similarity_score}
@@ -701,6 +1044,14 @@ export default function CollaborativeRecommendationsPage() {
           </div>
         )}
       </div>
+
+      {/* Game Detail Modal */}
+      {selectedGame && (
+        <GameDetailModal
+          game={selectedGame}
+          onClose={() => setSelectedGame(null)}
+        />
+      )}
     </main>
   );
 }
