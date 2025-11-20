@@ -102,8 +102,8 @@ export default function RecommendationsPage() {
       return;
     }
 
-    // If not bypassing cache and we haven't loaded yet, try cache first
-    if (!bypassCache && !hasLoadedRef.current) {
+    // If not bypassing cache, try cache first
+    if (!bypassCache) {
       const cacheLoaded = loadFromCache();
       if (cacheLoaded) {
         hasLoadedRef.current = true;
@@ -111,9 +111,12 @@ export default function RecommendationsPage() {
       }
     }
 
+    // Only fetch if bypassing cache OR no cache was found
     setLoading(true);
     setError(null);
     setUsingCache(false);
+    // Don't clear recommendations while loading - keep showing old data
+    // setRecommendations(null); - REMOVED
 
     try {
       const response = await fetch(`http://localhost:8000/api/recommendations/test/${steamId}`, {
@@ -128,6 +131,7 @@ export default function RecommendationsPage() {
       }
 
       const data = await response.json();
+      // Only update recommendations after data is fully loaded
       setRecommendations(data);
       
       // Save to cache after successful fetch
@@ -141,11 +145,18 @@ export default function RecommendationsPage() {
   }, [steamId]);
 
   useEffect(() => {
-    // Automatically fetch recommendations when component mounts and we have a Steam ID
+    // Only auto-fetch if we have no cached data
     if (steamId && !hasLoadedRef.current) {
-      fetchRecommendations(false);
+      const cacheLoaded = loadFromCache();
+      if (!cacheLoaded) {
+        // No cache, so fetch fresh data
+        fetchRecommendations(false);
+      } else {
+        hasLoadedRef.current = true;
+      }
     }
-  }, [steamId, fetchRecommendations]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [steamId]); // Only depend on steamId, not fetchRecommendations
 
   const handleRefreshRecommendations = () => {
     // Force fresh fetch bypassing cache

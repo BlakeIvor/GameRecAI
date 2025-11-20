@@ -100,7 +100,6 @@ export default function CollaborativeRecommendationsPage() {
   const [selectedCategories, setSelectedCategories] = useState<string[]>([]);
   const [selectedTags, setSelectedTags] = useState<string[]>([]);
   const [selectedPlatforms, setSelectedPlatforms] = useState<string[]>([]);
-  const [sortBy, setSortBy] = useState<string>('recommendation_score');
   const [selectedGame, setSelectedGame] = useState<GameRecommendation | null>(null);
   const [minReleaseDate, setMinReleaseDate] = useState<string>('');
   const [maxReleaseDate, setMaxReleaseDate] = useState<string>('');
@@ -448,17 +447,10 @@ export default function CollaborativeRecommendationsPage() {
     );
   };
 
-  // Sort recommendations based on selected criteria
-  const sortedRecommendations = [...recommendations].sort((a, b) => {
-    if (sortBy === 'positive_reviews') {
-      return (b.positive || 0) - (a.positive || 0);
-    } else if (sortBy === 'recommendation_score') {
-      return b.recommendation_score - a.recommendation_score;
-    } else if (sortBy === 'recommended_by_count') {
-      return b.recommended_by_count - a.recommended_by_count;
-    }
-    return 0;
-  });
+  // Sort recommendations by positive reviews and limit to maxRecommendations
+  const sortedRecommendations = [...recommendations]
+    .sort((a, b) => (b.positive || 0) - (a.positive || 0))
+    .slice(0, maxRecommendations);
 
   // Calculate grid columns based on number of recommendations
   const getGridColumns = () => {
@@ -601,10 +593,11 @@ export default function CollaborativeRecommendationsPage() {
                     onChange={(e) => setMaxSimilarUsers(Number(e.target.value))}
                     className="w-full bg-gray-800 border border-gray-700 rounded-lg px-4 py-2.5 text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
                   >
-                    <option value={999999}>No Limit</option>
+                    <option value={100}>100 users</option>
+                    <option value={250}>250 users</option>
                     <option value={500}>500 users</option>
                     <option value={1000}>1000 users</option>
-                    <option value={10000}>10000 users</option>
+                    <option value={2500}>2500 users</option>
                   </select>
                 </div>
 
@@ -864,23 +857,8 @@ export default function CollaborativeRecommendationsPage() {
           <div className="animate-fadeIn">
             <div className="flex items-center justify-between mb-6">
               <h2 className="text-2xl font-bold">
-                Recommended Games ({recommendations.length})
+                Top {sortedRecommendations.length} Games (by Positive Reviews)
               </h2>
-              <div className="flex items-center gap-2">
-                <label htmlFor="sort-select" className="text-sm text-gray-400">
-                  Sort by:
-                </label>
-                <select
-                  id="sort-select"
-                  value={sortBy}
-                  onChange={(e) => setSortBy(e.target.value)}
-                  className="bg-gray-800 text-white border border-gray-700 rounded px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-                >
-                  <option value="recommendation_score">Recommendation Score</option>
-                  <option value="positive_reviews">Positive Reviews</option>
-                  <option value="recommended_by_count">Recommended By Count</option>
-                </select>
-              </div>
             </div>
             <div className={`grid ${getGridColumns()} gap-4 transition-all duration-300`}>
               {sortedRecommendations.map((game) => (
