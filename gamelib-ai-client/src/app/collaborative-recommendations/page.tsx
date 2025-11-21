@@ -9,7 +9,7 @@ import AutocompleteDropdown from '../components/AutocompleteDropdown';
 import GameDetailModal from '../components/GameDetailModal';
 
 interface GameRecommendation {
-  appid: number;
+  game_id: number;
   name: string;
   header_image: string;
   short_description: string;
@@ -45,7 +45,6 @@ interface CollaborativeRecommendationsResponse {
   similar_users: SimilarUser[];
   user_top_games: number[];
   total_users_analyzed: number;
-  similar_users_found: number;
 }
 
 interface CachedData {
@@ -54,12 +53,11 @@ interface CachedData {
   stats: {
     userTopGames: number[];
     totalUsersAnalyzed: number;
-    similarUsersFound: number;
   };
   filters: {
     topNGames: number;
     minPlaytime: number;
-    maxSimilarUsers: number;
+    maxTotalUsers: number;
     maxRecommendations: number;
     selectedSteamGenres: string[];
     selectedLanguages: string[];
@@ -84,16 +82,15 @@ export default function CollaborativeRecommendationsPage() {
   const [stats, setStats] = useState<{
     userTopGames: number[];
     totalUsersAnalyzed: number;
-    similarUsersFound: number;
   } | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [usingCache, setUsingCache] = useState(false);  
 
   // Filter state
-  const [topNGames, setTopNGames] = useState<number>(5);
+  const [topNGames, setTopNGames] = useState<number>(10);
   const [minPlaytime, setMinPlaytime] = useState<number>(60);
-  const [maxSimilarUsers, setMaxSimilarUsers] = useState<number>(1000);
+  const [maxTotalUsers, setMaxTotalUsers] = useState<number>(1000);
   const [maxRecommendations, setMaxRecommendations] = useState<number>(20);
   const [selectedSteamGenres, setSelectedSteamGenres] = useState<string[]>([]);
   const [selectedLanguages, setSelectedLanguages] = useState<string[]>([]);
@@ -188,7 +185,7 @@ export default function CollaborativeRecommendationsPage() {
     return (
       cachedFilters.topNGames === topNGames &&
       cachedFilters.minPlaytime === minPlaytime &&
-      cachedFilters.maxSimilarUsers === maxSimilarUsers &&
+      cachedFilters.maxTotalUsers === maxTotalUsers &&
       cachedFilters.maxRecommendations === maxRecommendations &&
       cachedFilters.maxPrice === maxPrice &&
       cachedFilters.minReleaseDate === minReleaseDate &&
@@ -237,7 +234,7 @@ export default function CollaborativeRecommendationsPage() {
         // Restore filter state
         setTopNGames(cachedData.filters.topNGames);
         setMinPlaytime(cachedData.filters.minPlaytime);
-        setMaxSimilarUsers(cachedData.filters.maxSimilarUsers);
+        setMaxTotalUsers(cachedData.filters.maxTotalUsers);
         setMaxRecommendations(cachedData.filters.maxRecommendations);
         setSelectedSteamGenres(cachedData.filters.selectedSteamGenres);
         setSelectedLanguages(cachedData.filters.selectedLanguages);
@@ -275,7 +272,7 @@ export default function CollaborativeRecommendationsPage() {
         filters: {
           topNGames,
           minPlaytime,
-          maxSimilarUsers,
+          maxTotalUsers,
           maxRecommendations,
           selectedSteamGenres,
           selectedLanguages,
@@ -330,7 +327,7 @@ export default function CollaborativeRecommendationsPage() {
       const params = new URLSearchParams();
       params.append('top_n_games', topNGames.toString());
       params.append('min_playtime', minPlaytime.toString());
-      params.append('max_similar_users', maxSimilarUsers.toString());
+      params.append('max_total_users', maxTotalUsers.toString());
       params.append('max_recommendations', maxRecommendations.toString());
       
       // Add steam_genres
@@ -378,7 +375,6 @@ export default function CollaborativeRecommendationsPage() {
       const statsData = {
         userTopGames: data.user_top_games || [],
         totalUsersAnalyzed: data.total_users_analyzed || 0,
-        similarUsersFound: data.similar_users_found || 0,
       };
 
       setRecommendations(recs);
@@ -553,11 +549,11 @@ export default function CollaborativeRecommendationsPage() {
                     onChange={(e) => setTopNGames(Number(e.target.value))}
                     className="w-full bg-gray-800 border border-gray-700 rounded-lg px-4 py-2.5 text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
                   >
-                    <option value={1}>1 game</option>
-                    <option value={2}>2 games</option>
+                    <option value={99999999}>All games</option>
                     <option value={5}>5 games</option>
                     <option value={10}>10 games</option>
                     <option value={25}>25 games</option>
+                    <option value={50}>50 games</option>
                   </select>
                 </div>
 
@@ -583,24 +579,23 @@ export default function CollaborativeRecommendationsPage() {
                 {/* Max Similar Users */}
                 <div className="space-y-2">
                   <label className="block text-sm font-medium text-gray-300">
-                    Similar Users Limit
+                    Users to Analyze
                   </label>
                   <p className="text-xs text-gray-500 mb-2">
-                    Maximum similar users to analyze
+                    Number of users to pull from database
                   </p>
                   <select
-                    value={maxSimilarUsers}
-                    onChange={(e) => setMaxSimilarUsers(Number(e.target.value))}
+                    value={maxTotalUsers}
+                    onChange={(e) => setMaxTotalUsers(Number(e.target.value))}
                     className="w-full bg-gray-800 border border-gray-700 rounded-lg px-4 py-2.5 text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
                   >
-                    <option value={100}>100 users</option>
-                    <option value={250}>250 users</option>
                     <option value={500}>500 users</option>
                     <option value={1000}>1000 users</option>
                     <option value={2500}>2500 users</option>
+                    <option value={5000}>5000 users</option>
+                    <option value={10000}>10000 users</option>
                   </select>
                 </div>
-
                 {/* Max Recommendations */}
                 <div className="space-y-2">
                   <label className="block text-sm font-medium text-gray-300">
@@ -820,16 +815,19 @@ export default function CollaborativeRecommendationsPage() {
           <div className="bg-gray-900 rounded-lg p-4 mb-6 transition-all duration-300 hover:shadow-lg">
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               <div>
-                <h3 className="text-gray-400 text-sm mb-1">Users Analyzed</h3>
-                <p className="text-2xl font-bold">{stats.totalUsersAnalyzed}</p>
+                <h3 className="text-gray-400 text-sm mb-1">Total Users Analyzed</h3>
+                <p className="text-xs text-gray-500 mb-1">Users pulled from database</p>
+                <p className="text-2xl font-bold">{stats.totalUsersAnalyzed.toLocaleString()}</p>
               </div>
               <div>
-                <h3 className="text-gray-400 text-sm mb-1">Similar Users Found</h3>
-                <p className="text-2xl font-bold">{stats.similarUsersFound}</p>
+                <h3 className="text-gray-400 text-sm mb-1">High-Quality Matches</h3>
+                <p className="text-xs text-gray-500 mb-1">Users with strong similarity</p>
+                <p className="text-2xl font-bold">{similarUsers.length.toLocaleString()}</p>
               </div>
               <div>
-                <h3 className="text-gray-400 text-sm mb-1">Top Games Used</h3>
-                <p className="text-2xl font-bold">{stats.userTopGames.length}</p>
+                <h3 className="text-gray-400 text-sm mb-1">Your Top Games Used</h3>
+                <p className="text-xs text-gray-500 mb-1">Games used for matching</p>
+                <p className="text-2xl font-bold">{stats.userTopGames?.length || 0}</p>
               </div>
             </div>
             
@@ -863,7 +861,7 @@ export default function CollaborativeRecommendationsPage() {
             <div className={`grid ${getGridColumns()} gap-4 transition-all duration-300`}>
               {sortedRecommendations.map((game) => (
                 <div
-                  key={game.appid}
+                  key={game.game_id}
                   onClick={() => setSelectedGame(game)}
                   className="bg-gray-900 rounded-lg overflow-hidden hover:bg-gray-800 transition-all duration-300 hover:scale-105 hover:shadow-xl cursor-pointer"
                 >
@@ -883,7 +881,7 @@ export default function CollaborativeRecommendationsPage() {
                     </h3>
 
                     {/* Genres */}
-                    {game.genres.length > 0 && (
+                    {game.genres && game.genres.length > 0 && (
                       <div className="flex flex-wrap gap-2 mb-3">
                         {game.genres.slice(0, 3).map((genre, index) => (
                           <span

@@ -7,7 +7,7 @@ import { useAuth } from '../contexts/AuthContext';
 import LoadingSpinner from '../components/LoadingSpinner';
 
 interface SteamGame {
-  appid: number;
+  game_id: number;
   playtime_forever: number;
   rtime_last_played?: number;
 }
@@ -25,7 +25,7 @@ interface SteamPlayerData {
 interface ProfileData {
   totalGames: number;
   topGames: Array<{
-    appid: number;
+    game_id: number;
     playtime_forever: number;
     rtime_last_played?: string;
     name?: string;
@@ -154,44 +154,32 @@ export default function DashboardPage() {
     setProfileLoading(true);
     setUsingCache(false);
     try {
-      console.log('Making API calls to backend...');
+      console.log('Fetching user data from backend...');
       
-      // Fetch both profile and player summary data
-      const [profileResponse, playerResponse] = await Promise.all([
-        fetch(`http://localhost:8000/api/steam/profile/${steamId}`),
-        fetch(`http://localhost:8000/api/steam/player/${steamId}`)
-      ]);
+      // Fetch user data from backend (includes games and profile data)
+      const userResponse = await fetch(`http://localhost:8000/api/users/${steamId}?refresh=true`);
 
-      console.log('Profile response status:', profileResponse.status);
-      console.log('Player response status:', playerResponse.status);
+      console.log('User response status:', userResponse.status);
 
-      let profileData = null;
-      let playerData = null;
-
-      if (profileResponse.ok) {
-        const profileResult = await profileResponse.json();
-        console.log('Profile data received:', profileResult);
-        profileData = profileResult;
-      } else {
-        const errorText = await profileResponse.text();
-        console.error('Profile fetch failed:', errorText);
+      if (!userResponse.ok) {
+        const errorText = await userResponse.text();
+        console.error('User fetch failed:', errorText);
+        throw new Error('Failed to fetch user data');
       }
 
-      if (playerResponse.ok) {
-        const playerResult = await playerResponse.json();
-        console.log('Player data received:', playerResult);
-        playerData = playerResult;
-      } else {
-        const errorText = await playerResponse.text();
-        console.error('Player fetch failed:', errorText);
-      }
+      const userData = await userResponse.json();
+      console.log('User data received:', userData);
 
-      if (profileData && profileData.games) {
-        console.log('Games data found:', Object.keys(profileData.games).length, 'games');
+      // Extract player summary from user data
+      const playerData = userData.data;
+      const gamesData = userData.games;
+
+      if (gamesData && typeof gamesData === 'object') {
+        console.log('Games data found:', Object.keys(gamesData).length, 'games');
         
         // Convert games object to array and sort by playtime
-        const gamesArray = Object.entries(profileData.games).map(([appid, gameData]: [string, any]) => ({
-          appid: parseInt(appid),
+        const gamesArray = Object.entries(gamesData).map(([game_id, gameData]: [string, any]) => ({
+          game_id: parseInt(game_id),
           ...gameData
         }));
 
@@ -204,23 +192,24 @@ export default function DashboardPage() {
 
         console.log('Top 5 games by playtime:', topGames);
 
-        // Get game names for top games
-        const topGamesWithNames = await Promise.all(
+        // Get game details for top games from backend
+        const topGamesWithDetails = await Promise.all(
           topGames.map(async (game) => {
             try {
-              console.log(`Fetching details for game ${game.appid}...`);
-              const gameDetailsResponse = await fetch(`http://localhost:8000/api/steam/game-details/${game.appid}`);
-              console.log(`Game details response status for ${game.appid}:`, gameDetailsResponse.status);
+              console.log(`Fetching details for game ${game.game_id}...`);
+              const gameDetailsResponse = await fetch(`http://localhost:8000/api/steam/game-details/${game.game_id}`);
+              console.log(`Game details response status for ${game.game_id}:`, gameDetailsResponse.status);
               
               if (gameDetailsResponse.ok) {
                 const gameDetails = await gameDetailsResponse.json();
-                console.log(`Game details for ${game.appid}:`, gameDetails);
+                console.log(`Game details for ${game.game_id}:`, gameDetails);
                 
-                // Try multiple possible field names for game title and get image
-                const gameName = gameDetails.title || gameDetails.name || `Game ${game.appid}`;
-                const gameImage = gameDetails.image || gameDetails.header_image || null;
-                console.log(`Final game name for ${game.appid}: ${gameName}`);
-                console.log(`Game image for ${game.appid}: ${gameImage}`);
+                // Extract name and image from Game object
+                // Note: backend returns 'header_image' field name
+                const gameName = gameDetails.name || game.name || `Game ${game.game_id}`;
+                const gameImage = gameDetails.header_image || gameDetails.image || null;
+                console.log(`Final game name for ${game.game_id}: ${gameName}`);
+                console.log(`Game image for ${game.game_id}: ${gameImage}`);
                 
                 return { 
                   ...game, 
@@ -229,20 +218,21 @@ export default function DashboardPage() {
                 };
               } else {
                 const errorText = await gameDetailsResponse.text();
-                console.error(`Failed to fetch details for game ${game.appid}:`, errorText);
+                console.error(`Failed to fetch details for game ${game.game_id}:`, errorText);
               }
             } catch (error) {
-              console.error(`Error fetching game details for ${game.appid}:`, error);
+              console.error(`Error fetching game details for ${game.game_id}:`, error);
             }
-            return { ...game, name: `Game ${game.appid}`, image: null };
+            // Fallback to game data from user's library
+            return { ...game, name: game.name || `Game ${game.game_id}`, image: null };
           })
         );
 
-        console.log('Final games with names:', topGamesWithNames);
+        console.log('Final games with details:', topGamesWithDetails);
 
         const finalProfileData = {
           totalGames: gamesArray.length,
-          topGames: topGamesWithNames,
+          topGames: topGamesWithDetails,
           playerSummary: playerData
         };
 
@@ -251,7 +241,7 @@ export default function DashboardPage() {
         // Save to cache after successful fetch
         saveToCache(finalProfileData);
       } else {
-        console.error('No games data found in profile response');
+        console.error('No games data found in user response');
       }
     } catch (error) {
       console.error('Failed to fetch Steam profile data:', error);
@@ -423,13 +413,13 @@ export default function DashboardPage() {
                   </div>
                 ) : profileData && profileData.topGames.length > 0 ? (
                   profileData.topGames.slice(0, 5).map((game, index) => (
-                    <div key={game.appid} className="flex items-center justify-between">
+                    <div key={game.game_id} className="flex items-center justify-between">
                       <div className="flex items-center">
                         <div className="w-8 h-8 bg-gray-700 rounded mr-2 flex items-center justify-center overflow-hidden">
                           {game.image ? (
                             <img 
                               src={game.image} 
-                              alt={game.name || `Game ${game.appid}`}
+                              alt={game.name || `Game ${game.game_id}`}
                               className="w-full h-full object-cover"
                               onError={(e) => {
                                 // Fallback to game controller emoji if image fails
@@ -441,7 +431,7 @@ export default function DashboardPage() {
                             <span className="text-xs">🎮</span>
                           )}
                         </div>
-                        <span className="text-white text-sm">{game.name || `Game ${game.appid}`}</span>
+                        <span className="text-white text-sm">{game.name || `Game ${game.game_id}`}</span>
                       </div>
                       <span className="text-gray-400 text-xs">{formatPlaytime(game.playtime_forever)}</span>
                     </div>

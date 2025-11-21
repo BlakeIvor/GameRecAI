@@ -6,7 +6,7 @@ import { useAuth } from '../contexts/AuthContext';
 import LoadingSpinner from '../components/LoadingSpinner';
 
 interface GameRecommendation {
-  app_id: number;
+  game_id: number;
   title: string;
   description: string;
   image: string;
@@ -18,7 +18,7 @@ interface GameRecommendation {
   steam_url: string;
   based_on: {
     title: string;
-    app_id: number;
+    game_id: number;
   };
 }
 
@@ -119,7 +119,7 @@ export default function RecommendationsPage() {
     // setRecommendations(null); - REMOVED
 
     try {
-      const response = await fetch(`http://localhost:8000/api/recommendations/test/${steamId}`, {
+      const response = await fetch(`http://localhost:8000/api/recommendations/clusters/${steamId}`, {
         method: 'GET',
         headers: {
           'Content-Type': 'application/json',
@@ -291,7 +291,7 @@ export default function RecommendationsPage() {
             <div className="grid gap-8">
               {recommendations.games.map((game, index) => (
                 <div
-                  key={game.app_id || index}
+                  key={game.game_id || index}
                   className="bg-gradient-to-r from-gray-800 to-gray-850 rounded-xl overflow-hidden hover:from-gray-750 hover:to-gray-800 transition-all duration-300 group shadow-xl border border-gray-700/50"
                 >
                   <div className="md:flex">

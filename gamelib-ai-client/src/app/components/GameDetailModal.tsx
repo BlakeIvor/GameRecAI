@@ -4,7 +4,7 @@ import { useEffect } from 'react';
 
 interface GameDetailModalProps {
   game: {
-    appid: number;
+    game_id: number;
     name: string;
     header_image: string;
     short_description: string;
