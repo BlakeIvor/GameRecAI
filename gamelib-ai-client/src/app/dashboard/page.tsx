@@ -434,7 +434,10 @@ export default function DashboardPage() {
                               onError={(e) => {
                                 // Fallback to game controller emoji if image fails
                                 e.currentTarget.style.display = 'none';
-                                e.currentTarget.parentElement!.innerHTML = '<span class="text-xs">🎮</span>';
+                                const parent = e.currentTarget.parentElement;
+                                if (parent) {
+                                  parent.innerHTML = '<span class="text-xs">🎮</span>';
+                                }
                               }}
                             />
                           ) : (
