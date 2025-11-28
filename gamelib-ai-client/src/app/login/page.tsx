@@ -135,7 +135,7 @@ export default function LoginPage() {
               {/* Info Text */}
               <div className="text-center space-y-3">
                 <p className="text-gray-500 text-xs">
-                  You'll be securely redirected to Steam to authenticate
+                  You&apos;ll be securely redirected to Steam to authenticate
                 </p>
                 
                 <div className="flex items-center justify-center space-x-4 text-xs text-gray-600">

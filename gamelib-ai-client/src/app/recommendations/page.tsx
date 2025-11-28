@@ -419,7 +419,7 @@ export default function RecommendationsPage() {
               <h3 className="text-xl font-bold mb-4 text-blue-400">Want More Personalized Recommendations?</h3>
               <p className="text-gray-300 mb-6 max-w-2xl mx-auto">
                 Our AI gets smarter as you use it. The more you interact with recommendations, 
-                the better we become at finding games you'll love.
+                the better we become at finding games you&apos;ll love.
               </p>
               <button
                 onClick={handleRefreshRecommendations}
@@ -437,7 +437,7 @@ export default function RecommendationsPage() {
             <div className="text-6xl mb-4">🤖</div>
             <h3 className="text-xl font-bold mb-2 text-gray-300">No Recommendations Available</h3>
             <p className="text-gray-500 mb-6 max-w-md mx-auto">
-              Our AI couldn't find suitable recommendations at this time. This might be because your Steam library 
+                Our AI couldn&apos;t find suitable recommendations at this time. This might be because your Steam library
               is private or we need more data to analyze.
             </p>
             <div className="space-y-4">

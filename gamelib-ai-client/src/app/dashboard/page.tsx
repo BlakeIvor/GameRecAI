@@ -6,12 +6,6 @@ import Link from 'next/link';
 import { useAuth } from '../contexts/AuthContext';
 import LoadingSpinner from '../components/LoadingSpinner';
 
-interface SteamGame {
-  appid: number;
-  playtime_forever: number;
-  rtime_last_played?: number;
-}
-
 interface SteamPlayerData {
   personaname: string;
   profileurl: string;
@@ -22,12 +16,17 @@ interface SteamPlayerData {
   communityvisibilitystate: number;
 }
 
+interface GameData {
+  playtime_forever: number;
+  rtime_last_played?: number;
+}
+
 interface ProfileData {
   totalGames: number;
   topGames: Array<{
     appid: number;
     playtime_forever: number;
-    rtime_last_played?: string;
+    rtime_last_played?: number;
     name?: string;
     image?: string;
   }>;
@@ -45,7 +44,6 @@ export default function DashboardPage() {
   const searchParams = useSearchParams();
   const [profileData, setProfileData] = useState<ProfileData | null>(null);
   const [profileLoading, setProfileLoading] = useState(false);
-  const [usingCache, setUsingCache] = useState(false);
   const hasLoadedRef = useRef(false);
 
   // Cache key for localStorage
@@ -74,7 +72,6 @@ export default function DashboardPage() {
 
         // Load cached data
         setProfileData(cachedData.data);
-        setUsingCache(true);
         console.log('Loaded dashboard profile from cache');
         return true;
       }
@@ -152,7 +149,6 @@ export default function DashboardPage() {
 
     console.log('Starting fetchSteamProfileData for steamId:', steamId);
     setProfileLoading(true);
-    setUsingCache(false);
     try {
       console.log('Making API calls to backend...');
       
@@ -190,9 +186,9 @@ export default function DashboardPage() {
         console.log('Games data found:', Object.keys(profileData.games).length, 'games');
         
         // Convert games object to array and sort by playtime
-        const gamesArray = Object.entries(profileData.games).map(([appid, gameData]: [string, any]) => ({
+        const gamesArray = Object.entries(profileData.games).map(([appid, gameData]) => ({
           appid: parseInt(appid),
-          ...gameData
+          ...(gameData as GameData)
         }));
 
         console.log('Games array sample:', gamesArray.slice(0, 5));
@@ -260,13 +256,6 @@ export default function DashboardPage() {
     }
   };
 
-  const handleRefreshProfile = () => {
-    // Force a fresh fetch, bypassing cache
-    hasLoadedRef.current = false;
-    setUsingCache(false);
-    fetchSteamProfileData();
-  };
-
   const formatPlaytime = (minutes: number) => {
     const hours = Math.floor(minutes / 60);
     return `${hours.toLocaleString()} hrs`;
@@ -283,12 +272,6 @@ export default function DashboardPage() {
       6: { status: 'Looking to play', color: 'bg-green-500' }
     };
     return states[personastate as keyof typeof states] || states[0];
-  };
-
-  const handleLogout = () => {
-    console.log('Dashboard logout clicked');
-    logout();
-    window.location.href = '/login';
   };
 
   if (loading) {
@@ -422,7 +405,7 @@ export default function DashboardPage() {
                     ))}
                   </div>
                 ) : profileData && profileData.topGames.length > 0 ? (
-                  profileData.topGames.slice(0, 5).map((game, index) => (
+                  profileData.topGames.slice(0, 5).map((game) => (
                     <div key={game.appid} className="flex items-center justify-between">
                       <div className="flex items-center">
                         <div className="w-8 h-8 bg-gray-700 rounded mr-2 flex items-center justify-center overflow-hidden">
