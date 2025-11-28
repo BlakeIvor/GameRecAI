@@ -28,7 +28,7 @@ export default function AboutPage() {
             <h2 className="text-2xl font-semibold mb-4 text-blue-400">Our Mission</h2>
             <p className="text-gray-300 leading-relaxed">
               To eliminate the overwhelming choice paradox in gaming by providing personalized, AI-driven recommendations 
-              that help every gamer discover titles they'll truly love. We believe every gamer deserves to find their perfect game.
+              that help every gamer discover titles they&apos;ll truly love. We believe every gamer deserves to find their perfect game.
             </p>
           </div>
           

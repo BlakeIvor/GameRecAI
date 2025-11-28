@@ -40,7 +40,7 @@ interface CachedProfileData {
 }
 
 export default function DashboardPage() {
-  const { steamId, steamName, isLoggedIn, login, logout, loading } = useAuth();
+  const { steamId, steamName, isLoggedIn, login, loading } = useAuth();
   const searchParams = useSearchParams();
   const [profileData, setProfileData] = useState<ProfileData | null>(null);
   const [profileLoading, setProfileLoading] = useState(false);

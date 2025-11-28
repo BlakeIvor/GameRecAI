@@ -210,7 +210,6 @@ export default function CollaborativeRecommendationsPage() {
       setError(null);
       setUsingCache(false);
 
-      const maxSimilarParam = maxSimilarUsers !== 999999 ? `&max_similar_users=${maxSimilarUsers}` : '';
       const genresParam = selectedGenres.length > 0 ? selectedGenres.map(g => `&genres=${encodeURIComponent(g)}`).join('') : '';
       const maxPriceParam = maxPrice !== 'none' ? `&max_price=${maxPrice}` : '';
       
@@ -554,7 +553,7 @@ export default function CollaborativeRecommendationsPage() {
               <div className="pt-4 border-t border-gray-700/50">
                 <p className="text-xs text-gray-500 italic flex items-center gap-2">
                   <span>⚡</span>
-                  <span>Data loaded instantly from cache - change filters and click "Apply Settings" to fetch fresh results</span>
+                  <span>Data loaded instantly from cache - change filters and click &quot;Apply Settings&quot; to fetch fresh results</span>
                 </p>
               </div>
             )}

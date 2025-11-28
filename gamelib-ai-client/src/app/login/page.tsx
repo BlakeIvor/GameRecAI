@@ -49,7 +49,7 @@ export default function LoginPage() {
       // Redirect to Steam login
       window.location.href = "http://localhost:8000/api/auth/steam/login";
       
-    } catch (error) {
+    } catch (err) {
       setError('Cannot reach authentication server. Please try again later.');
       setIsLoading(false);
     }
