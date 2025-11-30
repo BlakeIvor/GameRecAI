@@ -3,10 +3,17 @@
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useAuth } from '../contexts/AuthContext';
+import { useState, useEffect } from 'react';
 
 export default function Navigation() {
   const { steamId, steamName, isLoggedIn, logout, loading } = useAuth();
   const pathname = usePathname();
+  const [mounted, setMounted] = useState(false);
+
+  // Ensure we only render the active state on the client
+  useEffect(() => {
+    setMounted(true);
+  }, []);
 
   const handleLogout = () => {
     console.log('Navigation logout clicked');
@@ -15,15 +22,16 @@ export default function Navigation() {
   };
 
   const isActive = (path: string) => {
-    return pathname === path;
+    return mounted && pathname === path;
   };
 
   const navLinks = [
     { href: '/dashboard', label: 'Dashboard', icon: '🎮' },
     { href: '/recommendations', label: 'AI Recommendations', icon: '🤖' },
+    { href: '/ai-chat', label: 'AI Chat', icon: '💬' },
     { href: '/collaborative-recommendations', label: 'Community Picks', icon: '👥' },
     { href: '/about', label: 'About', icon: '📖' },
-    { href: '/contact', label: 'Contact', icon: '💬' },
+    { href: '/contact', label: 'Contact', icon: '�' },
   ];
 
   return (
