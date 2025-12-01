@@ -3,10 +3,17 @@
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useAuth } from '../contexts/AuthContext';
+import { useState, useEffect } from 'react';
 
 export default function Navigation() {
   const { steamId, steamName, isLoggedIn, logout, loading } = useAuth();
   const pathname = usePathname();
+  const [mounted, setMounted] = useState(false);
+
+  // Ensure we only render the active state on the client
+  useEffect(() => {
+    setMounted(true);
+  }, []);
 
   const handleLogout = () => {
     console.log('Navigation logout clicked');
@@ -15,15 +22,17 @@ export default function Navigation() {
   };
 
   const isActive = (path: string) => {
+    // Always use pathname for consistency between server and client
     return pathname === path;
   };
 
   const navLinks = [
     { href: '/dashboard', label: 'Dashboard', icon: '🎮' },
-    { href: '/recommendations', label: 'AI Recommendations', icon: '🤖' },
+    //{ href: '/recommendations', label: 'AI Recommendations', icon: '🤖' },
+    { href: '/ai-recommendations', label: 'AI Chat', icon: '💬' },
     { href: '/collaborative-recommendations', label: 'Community Picks', icon: '👥' },
     { href: '/about', label: 'About', icon: '📖' },
-    { href: '/contact', label: 'Contact', icon: '💬' },
+    { href: '/contact', label: 'Contact', icon: '📞' },
   ];
 
   return (
@@ -84,7 +93,7 @@ export default function Navigation() {
 
           {/* User Section */}
           <div className="flex items-center space-x-4">
-            {!loading && isLoggedIn ? (
+            {mounted && !loading && isLoggedIn ? (
               <>
                 {/* User Info */}
                 <div className="hidden md:flex items-center space-x-3 px-4 py-2 bg-gray-800/50 rounded-lg border border-gray-700/50">
@@ -124,7 +133,7 @@ export default function Navigation() {
                   </span>
                 </button>
               </>
-            ) : !loading ? (
+            ) : mounted && !loading ? (
               <Link 
                 href="/login"
                 className="
