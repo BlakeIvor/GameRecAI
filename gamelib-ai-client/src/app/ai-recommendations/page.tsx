@@ -33,7 +33,6 @@ interface ChatMessage {
   timestamp: Date;
   recommendations?: GameRecommendation[];
   explanation?: string;
-  loading?: boolean;
 }
 
 export default function AIChatPage() {
@@ -47,6 +46,38 @@ export default function AIChatPage() {
   // Auto scroll to bottom when new messages are added
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+  };
+
+  // Thinking dots component
+  const ThinkingIndicator = () => {
+    const [dots, setDots] = useState('.');
+    
+    useEffect(() => {
+      if (!isLoading) return;
+      
+      const interval = setInterval(() => {
+        setDots(prev => {
+          if (prev === '...') return '.';
+          return prev + '.';
+        });
+      }, 500);
+      
+      return () => clearInterval(interval);
+    }, [isLoading]);
+
+    if (!isLoading) return null;
+
+    return (
+      <div className="flex justify-start">
+        <div className="max-w-full sm:max-w-3xl">
+          <div className="bg-gray-900/50 text-gray-100 mr-4 sm:mr-8 border border-gray-700/30 rounded-xl p-4">
+            <p className="text-sm sm:text-base text-gray-400">
+              <span className="text-blue-400">🤖</span> Thinking{dots}
+            </p>
+          </div>
+        </div>
+      </div>
+    );
   };
 
   useEffect(() => {
@@ -66,7 +97,7 @@ export default function AIChatPage() {
       const welcomeMessage: ChatMessage = {
         id: 'welcome',
         type: 'ai',
-        content: "🎮 Welcome to AI Game Chat! I'm here to help you discover amazing games tailored to your preferences. Tell me what you're in the mood for - whether it's a specific genre, budget, gameplay style, or even games similar to ones you love. Let's find your next gaming adventure!",
+        content: "🎮 Welcome to GameLib AI Recommendations! I'm here to help you discover amazing games tailored to your preferences. Tell me what you're in the mood for - whether it's a specific genre, budget, gameplay style, or even games similar to ones you love. Let's find your next gaming adventure!",
         timestamp: new Date()
       };
       setMessages([welcomeMessage]);
@@ -84,15 +115,7 @@ export default function AIChatPage() {
       timestamp: new Date()
     };
 
-    const loadingMessage: ChatMessage = {
-      id: `ai-loading-${Date.now()}`,
-      type: 'ai',
-      content: 'Thinking...',
-      timestamp: new Date(),
-      loading: true
-    };
-
-    setMessages(prev => [...prev, userMessage, loadingMessage]);
+    setMessages(prev => [...prev, userMessage]);
     setInputValue('');
     setIsLoading(true);
 
@@ -123,8 +146,7 @@ export default function AIChatPage() {
         explanation: data.explanation
       };
 
-      // Remove loading message and add AI response
-      setMessages(prev => prev.slice(0, -1).concat(aiMessage));
+      setMessages(prev => [...prev, aiMessage]);
     } catch (error) {
       console.error('Error getting AI recommendations:', error);
       const errorMessage: ChatMessage = {
@@ -134,8 +156,7 @@ export default function AIChatPage() {
         timestamp: new Date()
       };
 
-      // Remove loading message and add error message
-      setMessages(prev => prev.slice(0, -1).concat(errorMessage));
+      setMessages(prev => [...prev, errorMessage]);
     } finally {
       setIsLoading(false);
     }
@@ -215,14 +236,7 @@ export default function AIChatPage() {
                         : 'bg-gray-900/50 text-gray-100 mr-4 sm:mr-8 border border-gray-700/30'
                     }`}
                   >
-                    {message.loading ? (
-                      <div className="flex items-center space-x-2">
-                        <LoadingSpinner />
-                        <span>Analyzing your request...</span>
-                      </div>
-                    ) : (
-                      <p className="whitespace-pre-wrap text-sm sm:text-base">{message.content}</p>
-                    )}
+                    <p className="whitespace-pre-wrap text-sm sm:text-base">{message.content}</p>
                   </div>
 
                   {/* Game Recommendations */}
@@ -237,18 +251,32 @@ export default function AIChatPage() {
                           className="bg-gradient-to-r from-gray-900 to-gray-800 rounded-lg border border-gray-700/50 p-4 hover:from-gray-850 hover:to-gray-750 transition-all duration-300 group mr-4 sm:mr-8"
                         >
                           <div className="flex flex-col sm:flex-row items-start space-y-3 sm:space-y-0 sm:space-x-4">
-                            {game.image && (
-                              <div className="relative overflow-hidden rounded-lg">
+                            {/* Game Thumbnail - Always show placeholder area */}
+                            <div className="relative overflow-hidden rounded-lg bg-gray-800 flex-shrink-0">
+                              {game.image || game.app_id ? (
                                 <img
-                                  src={game.image}
+                                  src={game.image || `https://cdn.akamai.steamstatic.com/steam/apps/${game.app_id}/header.jpg`}
                                   alt={game.name}
                                   className="w-full sm:w-20 h-32 sm:h-20 object-cover group-hover:scale-105 transition-transform duration-300"
                                   onError={(e) => {
-                                    (e.target as HTMLImageElement).style.display = 'none';
+                                    const target = e.target as HTMLImageElement;
+                                    target.style.display = 'none';
+                                    const placeholder = target.nextElementSibling as HTMLElement;
+                                    if (placeholder) placeholder.style.display = 'flex';
                                   }}
                                 />
+                              ) : null}
+                              {/* Fallback placeholder */}
+                              <div 
+                                className={`w-full sm:w-20 h-32 sm:h-20 bg-gradient-to-br from-gray-700 to-gray-800 flex items-center justify-center ${(game.image || game.app_id) ? 'hidden' : 'flex'}`}
+                                style={(game.image || game.app_id) ? { display: 'none' } : {}}
+                              >
+                                <div className="text-center text-gray-400">
+                                  <div className="text-2xl sm:text-lg mb-1">🎮</div>
+                                  <div className="text-xs hidden sm:block">Game</div>
+                                </div>
                               </div>
-                            )}
+                            </div>
                             <div className="flex-1 min-w-0 w-full">
                               <div className="flex flex-col sm:flex-row items-start justify-between mb-2">
                                 <h3 className="text-lg font-semibold text-white mb-1 sm:mb-0 group-hover:text-blue-400 transition-colors">{game.name}</h3>
@@ -300,6 +328,10 @@ export default function AIChatPage() {
                 </div>
               </div>
             ))}
+            
+            {/* Thinking Indicator */}
+            <ThinkingIndicator />
+            
             <div ref={messagesEndRef} />
           </div>
 
@@ -320,14 +352,7 @@ export default function AIChatPage() {
                 disabled={isLoading || !inputValue.trim()}
                 className="px-8 py-3 bg-gradient-to-r from-blue-600 to-purple-600 text-white rounded-lg font-medium hover:from-blue-500 hover:to-purple-500 transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed shadow-lg hover:shadow-blue-500/25 self-stretch sm:self-auto"
               >
-                {isLoading ? (
-                  <div className="flex items-center space-x-2">
-                    <LoadingSpinner />
-                    <span>Thinking...</span>
-                  </div>
-                ) : (
-                  'Send'
-                )}
+                Send
               </button>
             </form>
             <div className="mt-3 text-xs text-gray-500">

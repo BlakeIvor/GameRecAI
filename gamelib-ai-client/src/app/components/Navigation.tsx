@@ -27,11 +27,11 @@ export default function Navigation() {
 
   const navLinks = [
     { href: '/dashboard', label: 'Dashboard', icon: '🎮' },
-    { href: '/recommendations', label: 'AI Recommendations', icon: '🤖' },
-    { href: '/ai-chat', label: 'AI Chat', icon: '💬' },
+    //{ href: '/recommendations', label: 'AI Recommendations', icon: '🤖' },
+    { href: '/ai-recommendations', label: 'AI Chat', icon: '💬' },
     { href: '/collaborative-recommendations', label: 'Community Picks', icon: '👥' },
     { href: '/about', label: 'About', icon: '📖' },
-    { href: '/contact', label: 'Contact', icon: '�' },
+    { href: '/contact', label: 'Contact', icon: '📞' },
   ];
 
   return (
@@ -92,7 +92,7 @@ export default function Navigation() {
 
           {/* User Section */}
           <div className="flex items-center space-x-4">
-            {!loading && isLoggedIn ? (
+            {mounted && !loading && isLoggedIn ? (
               <>
                 {/* User Info */}
                 <div className="hidden md:flex items-center space-x-3 px-4 py-2 bg-gray-800/50 rounded-lg border border-gray-700/50">
@@ -132,7 +132,7 @@ export default function Navigation() {
                   </span>
                 </button>
               </>
-            ) : !loading ? (
+            ) : mounted && !loading ? (
               <Link 
                 href="/login"
                 className="
