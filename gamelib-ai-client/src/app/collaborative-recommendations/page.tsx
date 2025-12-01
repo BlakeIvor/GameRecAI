@@ -13,7 +13,6 @@ interface GameRecommendation {
   name: string;
   header_image: string;
   short_description: string;
-  detailed_description?: string;
   genres: string[];
   languages: string[];
   categories: string[];

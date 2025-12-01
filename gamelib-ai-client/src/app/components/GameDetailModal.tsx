@@ -8,7 +8,6 @@ interface GameDetailModalProps {
     name: string;
     header_image: string;
     short_description: string;
-    detailed_description?: string;
     genres: string[];
     languages: string[];
     categories: string[];
@@ -90,9 +89,9 @@ export default function GameDetailModal({ game, onClose }: GameDetailModalProps)
           </div>
 
           {/* Description */}
-          {(game.detailed_description || game.short_description) && (
+          {(game.short_description) && (
             <div className="text-gray-300 leading-relaxed">
-              <div dangerouslySetInnerHTML={{ __html: game.detailed_description || game.short_description }} />
+              <div dangerouslySetInnerHTML={{ __html: game.short_description }} />
             </div>
           )}
 
