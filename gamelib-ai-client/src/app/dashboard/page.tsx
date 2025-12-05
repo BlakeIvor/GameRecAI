@@ -200,7 +200,7 @@ function DashboardContent() {
 
         console.log('Top 5 games by playtime:', topGames);
 
-        // Get game names for top games
+        // Get game names and images for top games from backend
         const topGamesWithNames = await Promise.all(
           topGames.map(async (game) => {
             try {
@@ -212,16 +212,11 @@ function DashboardContent() {
                 const gameDetails = await gameDetailsResponse.json();
                 console.log(`Game details for ${game.appid}:`, gameDetails);
                 
-                // Try multiple possible field names for game title and get image
-                const gameName = gameDetails.title || gameDetails.name || `Game ${game.appid}`;
-                const gameImage = gameDetails.image || gameDetails.header_image || null;
-                console.log(`Final game name for ${game.appid}: ${gameName}`);
-                console.log(`Game image for ${game.appid}: ${gameImage}`);
-                
+                // Backend returns Game schema with proper field names
                 return { 
                   ...game, 
-                  name: gameName,
-                  image: gameImage
+                  name: gameDetails.name || `Game ${game.appid}`,
+                  image: gameDetails.header_image || gameDetails.image || null
                 };
               } else {
                 const errorText = await gameDetailsResponse.text();
@@ -392,10 +387,17 @@ function DashboardContent() {
             <div className="bg-gray-900/50 rounded-lg p-4 border border-gray-700/30">
               <h3 className="text-green-400 font-semibold mb-3 text-sm uppercase tracking-wide">Top Games</h3>
               <div className="space-y-3 min-h-[180px]">
+                {(() => {
+                  console.log('Top Games Render - profileLoading:', profileLoading);
+                  console.log('Top Games Render - profileData:', profileData);
+                  console.log('Top Games Render - topGames:', profileData?.topGames);
+                  console.log('Top Games Render - topGames length:', profileData?.topGames?.length);
+                  return null;
+                })()}
                 {profileLoading ? (
                   <div className="space-y-3">
                     {[1, 2, 3].map((i) => (
-                      <div key={i} className="flex items-center justify-between animate-pulse">
+                      <div key={`skeleton-${i}`} className="flex items-center justify-between animate-pulse">
                         <div className="flex items-center">
                           <div className="w-8 h-8 bg-gray-700 rounded mr-2"></div>
                           <div className="h-4 bg-gray-700 rounded w-32"></div>
@@ -404,7 +406,7 @@ function DashboardContent() {
                       </div>
                     ))}
                   </div>
-                ) : profileData && profileData.topGames.length > 0 ? (
+                ) : profileData && profileData.topGames && profileData.topGames.length > 0 ? (
                   profileData.topGames.slice(0, 5).map((game) => (
                     <div key={game.appid} className="flex items-center justify-between">
                       <div className="flex items-center">
@@ -434,7 +436,9 @@ function DashboardContent() {
                   ))
                 ) : (
                   <div className="text-center py-2">
-                    <span className="text-gray-500 text-xs">No game data available</span>
+                    <span className="text-gray-500 text-xs">
+                      {!profileData ? 'Loading profile data...' : 'No game data available'}
+                    </span>
                   </div>
                 )}
               </div>

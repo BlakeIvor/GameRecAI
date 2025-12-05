@@ -3,10 +3,17 @@
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useAuth } from '../contexts/AuthContext';
+import { useState, useEffect } from 'react';
 
 export default function Navigation() {
-  const { steamId, steamName, isLoggedIn, logout, loading } = useAuth();
+  const { steamId, steamName, steamAvatar, isLoggedIn, logout, loading } = useAuth();
   const pathname = usePathname();
+  const [mounted, setMounted] = useState(false);
+
+  // Ensure we only render the active state on the client
+  useEffect(() => {
+    setMounted(true);
+  }, []);
 
   const handleLogout = () => {
     console.log('Navigation logout clicked');
@@ -15,15 +22,17 @@ export default function Navigation() {
   };
 
   const isActive = (path: string) => {
+    // Always use pathname for consistency between server and client
     return pathname === path;
   };
 
   const navLinks = [
     { href: '/dashboard', label: 'Dashboard', icon: '🎮' },
-    { href: '/recommendations', label: 'AI Recommendations', icon: '🤖' },
+    //{ href: '/recommendations', label: 'AI Recommendations', icon: '🤖' },
+    { href: '/ai-recommendations', label: 'AI Chat', icon: '💬' },
     { href: '/collaborative-recommendations', label: 'Community Picks', icon: '👥' },
     { href: '/about', label: 'About', icon: '📖' },
-    { href: '/contact', label: 'Contact', icon: '💬' },
+    { href: '/contact', label: 'Contact', icon: '📞' },
   ];
 
   return (
@@ -84,15 +93,23 @@ export default function Navigation() {
 
           {/* User Section */}
           <div className="flex items-center space-x-4">
-            {!loading && isLoggedIn ? (
+            {mounted && !loading && isLoggedIn ? (
               <>
                 {/* User Info */}
                 <div className="hidden md:flex items-center space-x-3 px-4 py-2 bg-gray-800/50 rounded-lg border border-gray-700/50">
-                  <div className="w-8 h-8 bg-gradient-to-br from-green-400 to-emerald-600 rounded-full flex items-center justify-center">
-                    <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
-                    </svg>
-                  </div>
+                  {steamAvatar ? (
+                    <img 
+                      src={steamAvatar} 
+                      alt="Steam Avatar" 
+                      className="w-8 h-8 rounded-full border-2 border-green-400"
+                    />
+                  ) : (
+                    <div className="w-8 h-8 bg-gradient-to-br from-green-400 to-emerald-600 rounded-full flex items-center justify-center">
+                      <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                      </svg>
+                    </div>
+                  )}
                   <div className="flex flex-col">
                     <span className="text-sm font-medium text-white">
                       {steamName || `User ${steamId?.slice(0, 8)}`}
@@ -124,7 +141,7 @@ export default function Navigation() {
                   </span>
                 </button>
               </>
-            ) : !loading ? (
+            ) : mounted && !loading ? (
               <Link 
                 href="/login"
                 className="
