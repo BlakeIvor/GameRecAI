@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import Link from 'next/link';
+import WaveBackground from '../components/WaveBackground';
 
 export default function ContactPage() {
   const [formData, setFormData] = useState({
@@ -11,6 +12,8 @@ export default function ContactPage() {
     message: '',
     category: 'general'
   });
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [submitStatus, setSubmitStatus] = useState<{ type: 'success' | 'error', message: string } | null>(null);
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
     setFormData({
@@ -19,16 +22,40 @@ export default function ContactPage() {
     });
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    // TODO: Implement form submission logic
-    console.log('Form submitted:', formData);
-    alert('Thank you for your message! We\'ll get back to you soon.');
-    setFormData({ name: '', email: '', subject: '', message: '', category: 'general' });
+    setIsSubmitting(true);
+    setSubmitStatus(null);
+    
+    try {
+      const response = await fetch('/api/send-email', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(formData),
+      });
+
+      const data = await response.json();
+
+      if (data.success) {
+        setSubmitStatus({ type: 'success', message: 'Thank you for your message! We\'ll get back to you soon.' });
+        setFormData({ name: '', email: '', subject: '', message: '', category: 'general' });
+      } else {
+        setSubmitStatus({ type: 'error', message: 'Failed to send message. Please try again.' });
+      }
+    } catch (error) {
+      console.error('Error submitting form:', error);
+      setSubmitStatus({ type: 'error', message: 'An error occurred. Please try again later.' });
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   return (
-    <main className="min-h-screen bg-black text-white">
+    <main className="min-h-screen bg-black text-white relative">
+      <WaveBackground />
+      <div className="relative z-10">
       {/* Navigation back to dashboard */}
       <div className="p-6">
         <Link href="/dashboard" className="text-blue-400 hover:text-blue-300 transition-colors">
@@ -139,86 +166,24 @@ export default function ContactPage() {
 
               <button
                 type="submit"
-                className="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 px-6 rounded-lg transition-colors"
+                disabled={isSubmitting}
+                className="w-full bg-blue-600 hover:bg-blue-700 disabled:bg-gray-600 disabled:cursor-not-allowed text-white font-bold py-3 px-6 rounded-lg transition-colors"
               >
-                Send Message
+                {isSubmitting ? 'Sending...' : 'Send Message'}
               </button>
+
+              {submitStatus && (
+                <div className={`p-4 rounded-lg ${submitStatus.type === 'success' ? 'bg-green-600/20 border border-green-600' : 'bg-red-600/20 border border-red-600'}`}>
+                  <p className={submitStatus.type === 'success' ? 'text-green-400' : 'text-red-400'}>
+                    {submitStatus.message}
+                  </p>
+                </div>
+              )}
             </form>
           </div>
 
           {/* Contact Information & Support Options */}
           <div className="space-y-8">
-            {/* Quick Contact */}
-            <div className="bg-gray-800 rounded-lg p-8">
-              <h2 className="text-2xl font-bold mb-6 text-blue-400">Get in Touch</h2>
-              <div className="space-y-4">
-                <div className="flex items-start space-x-4">
-                  <div className="bg-blue-600 rounded-lg p-3 flex-shrink-0">
-                    <div className="w-6 h-6 bg-white rounded"></div>
-                  </div>
-                  <div>
-                    <h3 className="font-semibold mb-1">Email Support</h3>
-                    <p className="text-gray-300 text-sm mb-2">Get help with technical issues and account questions</p>
-                    <p className="text-blue-400">support@gamelib.ai</p>
-                  </div>
-                </div>
-
-                <div className="flex items-start space-x-4">
-                  <div className="bg-green-600 rounded-lg p-3 flex-shrink-0">
-                    <div className="w-6 h-6 bg-white rounded"></div>
-                  </div>
-                  <div>
-                    <h3 className="font-semibold mb-1">General Inquiries</h3>
-                    <p className="text-gray-300 text-sm mb-2">Business partnerships and general questions</p>
-                    <p className="text-blue-400">hello@gamelib.ai</p>
-                  </div>
-                </div>
-
-                <div className="flex items-start space-x-4">
-                  <div className="bg-purple-600 rounded-lg p-3 flex-shrink-0">
-                    <div className="w-6 h-6 bg-white rounded"></div>
-                  </div>
-                  <div>
-                    <h3 className="font-semibold mb-1">Feedback & Suggestions</h3>
-                    <p className="text-gray-300 text-sm mb-2">Share your ideas to help us improve</p>
-                    <p className="text-blue-400">feedback@gamelib.ai</p>
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            {/* Office Information */}
-            <div className="bg-gray-800 rounded-lg p-8">
-              <h2 className="text-2xl font-bold mb-6 text-blue-400">Office Information</h2>
-              <div className="space-y-4">
-                <div>
-                  <h3 className="font-semibold mb-2">Headquarters</h3>
-                  <p className="text-gray-300 text-sm">
-                    [Company Address Line 1]<br />
-                    [City, State/Province, ZIP/Postal Code]<br />
-                    [Country]
-                  </p>
-                </div>
-                
-                <div>
-                  <h3 className="font-semibold mb-2">Business Hours</h3>
-                  <p className="text-gray-300 text-sm">
-                    Monday - Friday: 9:00 AM - 6:00 PM [Timezone]<br />
-                    Saturday - Sunday: Closed<br />
-                    <span className="text-blue-400">Email support available 24/7</span>
-                  </p>
-                </div>
-
-                <div>
-                  <h3 className="font-semibold mb-2">Phone</h3>
-                  <p className="text-gray-300 text-sm">
-                    Support: [Support Phone Number]<br />
-                    Business: [Business Phone Number]
-                  </p>
-                </div>
-              </div>
-            </div>
-
             {/* Social Media & Community */}
             <div className="bg-gray-800 rounded-lg p-8">
               <h2 className="text-2xl font-bold mb-6 text-blue-400">Connect With Us</h2>
@@ -228,37 +193,19 @@ export default function ContactPage() {
               
               <div className="grid grid-cols-2 gap-4">
                 <a 
-                  href="[Twitter URL]" 
+                  href="https://x.com/N3bbo" 
                   className="bg-gray-700 hover:bg-gray-600 p-4 rounded-lg transition-colors block text-center"
                 >
-                  <div className="w-8 h-8 bg-blue-400 rounded mx-auto mb-2"></div>
+                  <img src="/twit_pfp.jpg" alt="Twitter" className="w-8 h-8 rounded mx-auto mb-2 object-cover" />
                   <p className="text-sm font-medium">Twitter</p>
-                  <p className="text-xs text-gray-400">@gamelib_ai</p>
+                  <p className="text-xs text-gray-400">@n3bbo</p>
                 </a>
                 
                 <a 
-                  href="[Discord URL]" 
+                  href="https://github.com/benseidenberg/GameLib-Backend" 
                   className="bg-gray-700 hover:bg-gray-600 p-4 rounded-lg transition-colors block text-center"
                 >
-                  <div className="w-8 h-8 bg-indigo-400 rounded mx-auto mb-2"></div>
-                  <p className="text-sm font-medium">Discord</p>
-                  <p className="text-xs text-gray-400">Join Server</p>
-                </a>
-                
-                <a 
-                  href="[Reddit URL]" 
-                  className="bg-gray-700 hover:bg-gray-600 p-4 rounded-lg transition-colors block text-center"
-                >
-                  <div className="w-8 h-8 bg-orange-400 rounded mx-auto mb-2"></div>
-                  <p className="text-sm font-medium">Reddit</p>
-                  <p className="text-xs text-gray-400">r/GameLibAI</p>
-                </a>
-                
-                <a 
-                  href="[GitHub URL]" 
-                  className="bg-gray-700 hover:bg-gray-600 p-4 rounded-lg transition-colors block text-center"
-                >
-                  <div className="w-8 h-8 bg-gray-400 rounded mx-auto mb-2"></div>
+                  <img src="/git_logo.png" alt="GitHub" className="w-8 h-8 rounded mx-auto mb-2 object-cover" />
                   <p className="text-sm font-medium">GitHub</p>
                   <p className="text-xs text-gray-400">Open Source</p>
                 </a>
@@ -287,15 +234,7 @@ export default function ContactPage() {
             </div>
           </div>
         </div>
-
-        {/* Emergency Support */}
-        <div className="mt-12 bg-red-900/20 border border-red-800 rounded-lg p-6 text-center">
-          <h2 className="text-xl font-bold mb-2 text-red-400">Critical Issues?</h2>
-          <p className="text-gray-300 mb-4">
-            For urgent security concerns or account compromises, contact us immediately at:
-          </p>
-          <p className="text-red-400 font-bold">emergency@gamelib.ai</p>
-        </div>
+      </div>
       </div>
     </main>
   );

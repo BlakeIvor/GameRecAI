@@ -5,6 +5,7 @@ import { useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import { useAuth } from '../contexts/AuthContext';
 import LoadingSpinner from '../components/LoadingSpinner';
+import WaveBackground from '../components/WaveBackground';
 
 interface SteamPlayerData {
   personaname: string;
@@ -271,11 +272,14 @@ function DashboardContent() {
 
   if (loading) {
     return (
-      <main className="flex min-h-screen items-center justify-center bg-gradient-to-br from-gray-950 to-black">
-        <LoadingSpinner 
-          message="Loading Your Dashboard" 
-          size="large"
-        />
+      <main className="flex min-h-screen items-center justify-center bg-black relative">
+        <WaveBackground />
+        <div className="relative z-10">
+          <LoadingSpinner 
+            message="Loading Your Dashboard" 
+            size="large"
+          />
+        </div>
       </main>
     );
   }
@@ -293,8 +297,9 @@ function DashboardContent() {
   if (!loading && !isLoggedIn && !steamIdParam) {
     console.log('Dashboard: Not logged in and no Steam ID param, showing login prompt');
     return (
-      <main className="min-h-screen bg-gradient-to-br from-gray-950 to-black text-white">
-        <div className="flex flex-col items-center justify-center min-h-[60vh] text-center">
+      <main className="min-h-screen bg-black text-white relative">
+        <WaveBackground />
+        <div className="relative z-10 flex flex-col items-center justify-center min-h-[60vh] text-center">
           <div className="text-6xl mb-4">🔒</div>
           <h1 className="text-4xl font-bold mb-4 bg-gradient-to-r from-blue-400 to-purple-400 bg-clip-text text-transparent">
             Welcome to GameLib.AI
@@ -314,8 +319,9 @@ function DashboardContent() {
   }
 
   return (
-    <main className="min-h-screen bg-gradient-to-br from-gray-950 to-black text-white">
-      <div className="max-w-7xl mx-auto px-6 py-8">
+    <main className="min-h-screen bg-black text-white relative">
+      <WaveBackground />
+      <div className="relative z-10 max-w-7xl mx-auto px-6 py-8">
         {/* Header */}
         <div className="text-center mb-12">
           <h1 className="text-4xl font-bold mb-4 bg-gradient-to-r from-blue-400 to-purple-400 bg-clip-text text-transparent">

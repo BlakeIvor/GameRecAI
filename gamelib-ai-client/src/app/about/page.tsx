@@ -3,6 +3,7 @@ import Link from 'next/link';
 export default function AboutPage() {
   return (
     <main className="min-h-screen bg-black text-white">
+      <div className="relative z-10">
       {/* Navigation back to dashboard */}
       <div className="p-6">
         <Link href="/dashboard" className="text-blue-400 hover:text-blue-300 transition-colors">
@@ -46,12 +47,8 @@ export default function AboutPage() {
           <h2 className="text-3xl font-bold text-center mb-12">How GameLib.AI Works</h2>
           <div className="grid md:grid-cols-3 gap-8">
             <div className="text-center">
-              {/* Image placeholder */}
-              <div className="bg-gray-700 rounded-lg p-8 mb-6 h-48 flex items-center justify-center">
-                <div className="text-center">
-                  <p className="text-gray-400 font-semibold">Step 1 Icon</p>
-                  <p className="text-xs text-gray-500 mt-2">Suggested: Steam/library analysis icon</p>
-                </div>
+              <div className="bg-gray-700 rounded-lg mb-6 h-48 flex items-center justify-center overflow-hidden">
+                <img src="/steam_background.jpg" alt="Steam Icon" className="w-full h-full object-cover" />
               </div>
               <h3 className="text-xl font-semibold mb-3 text-blue-400">Analyze Your Library</h3>
               <p className="text-gray-300">
@@ -60,11 +57,8 @@ export default function AboutPage() {
             </div>
             
             <div className="text-center">
-              <div className="bg-gray-700 rounded-lg p-8 mb-6 h-48 flex items-center justify-center">
-                <div className="text-center">
-                  <p className="text-gray-400 font-semibold">Step 2 Icon</p>
-                  <p className="text-xs text-gray-500 mt-2">Suggested: AI/brain processing icon</p>
-                </div>
+              <div className="bg-gray-700 rounded-lg mb-6 h-48 flex items-center justify-center overflow-hidden">
+                <img src="/ai_process.jpg" alt="AI Processing" className="w-full h-full object-cover" />
               </div>
               <h3 className="text-xl font-semibold mb-3 text-blue-400">AI Processing</h3>
               <p className="text-gray-300">
@@ -73,11 +67,8 @@ export default function AboutPage() {
             </div>
             
             <div className="text-center">
-              <div className="bg-gray-700 rounded-lg p-8 mb-6 h-48 flex items-center justify-center">
-                <div className="text-center">
-                  <p className="text-gray-400 font-semibold">Step 3 Icon</p>
-                  <p className="text-xs text-gray-500 mt-2">Suggested: Personalized recommendations icon</p>
-                </div>
+              <div className="bg-gray-700 rounded-lg mb-6 h-48 flex items-center justify-center overflow-hidden">
+                <img src="/play_games.jpg" alt="Get Recommendations" className="w-full h-full object-cover" />
               </div>
               <h3 className="text-xl font-semibold mb-3 text-blue-400">Get Recommendations</h3>
               <p className="text-gray-300">
@@ -111,9 +102,11 @@ export default function AboutPage() {
           <h2 className="text-3xl font-bold text-center mb-12">Our Team</h2>
           <div className="grid md:grid-cols-2 gap-8 max-w-4xl mx-auto">
             <div className="text-center">
-              <div className="bg-gray-700 rounded-full w-32 h-32 mx-auto mb-4 flex items-center justify-center">
-                <p className="text-gray-400 text-sm">Founder Photo</p>
-              </div>
+              <img 
+                src="/DSC_0255.jpg" 
+                alt="Ben Seidenberg" 
+                className="rounded-full w-32 h-45 mx-auto mb-4 object-cover"
+              />
               <h3 className="text-xl font-semibold mb-2">Ben Seidenberg</h3>
               <p className="text-blue-400 mb-2">Founder</p>
               <p className="text-gray-300 text-sm">
@@ -122,7 +115,7 @@ export default function AboutPage() {
             </div>
 
             <div className="text-center">
-              <div className="bg-gray-700 rounded-full w-32 h-32 mx-auto mb-4 flex items-center justify-center">
+              <div className="bg-gray-700 rounded-full w-32 h-45 mx-auto mb-4 flex items-center justify-center">
                 <p className="text-gray-400 text-sm">Founder Photo</p>
               </div>
               <h3 className="text-xl font-semibold mb-2">Blake Shea</h3>
@@ -138,21 +131,17 @@ export default function AboutPage() {
         {/* Company Stats */}
         <div className="bg-gradient-to-r from-blue-900 to-purple-900 rounded-lg p-8 mb-16">
           <h2 className="text-3xl font-bold text-center mb-8">GameLib.AI by the Numbers</h2>
-          <div className="grid md:grid-cols-4 gap-8 text-center">
+          <div className="grid md:grid-cols-3 gap-8 text-center">
             <div>
-              <p className="text-3xl font-bold text-blue-400">[X]K+</p>
+              <p className="text-3xl font-bold text-blue-400">10K+</p>
               <p className="text-gray-300">Active Users</p>
             </div>
             <div>
-              <p className="text-3xl font-bold text-blue-400">[X]M+</p>
+              <p className="text-3xl font-bold text-blue-400">100K+</p>
               <p className="text-gray-300">Games Analyzed</p>
             </div>
             <div>
-              <p className="text-3xl font-bold text-blue-400">[X]%</p>
-              <p className="text-gray-300">Recommendation Accuracy</p>
-            </div>
-            <div>
-              <p className="text-3xl font-bold text-blue-400">[X]</p>
+              <p className="text-3xl font-bold text-blue-400">50+</p>
               <p className="text-gray-300">Countries Served</p>
             </div>
           </div>
@@ -171,6 +160,7 @@ export default function AboutPage() {
             Get Started Today
           </Link>
         </div>
+      </div>
       </div>
     </main>
   );

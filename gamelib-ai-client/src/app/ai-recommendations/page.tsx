@@ -4,6 +4,7 @@ import { useState, useEffect, useRef } from 'react';
 import Link from 'next/link';
 import { useAuth } from '../contexts/AuthContext';
 import LoadingSpinner from '../components/LoadingSpinner';
+import WaveBackground from '../components/WaveBackground';
 
 interface GameRecommendation {
   name: string;
@@ -203,7 +204,9 @@ export default function AIChatPage() {
   }
 
   return (
-    <main className="min-h-screen bg-black text-white">
+    <main className="min-h-screen bg-black text-white relative">
+      <WaveBackground />
+      <div className="relative z-10">
       {/* Navigation */}
       <div className="p-6">
         <Link href="/dashboard" className="text-blue-400 hover:text-blue-300 transition-colors">
@@ -360,6 +363,7 @@ export default function AIChatPage() {
             </div>
           </div>
         </div>
+      </div>
       </div>
     </main>
   );
