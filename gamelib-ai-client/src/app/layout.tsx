@@ -1,8 +1,10 @@
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
+import { Suspense } from "react";
 import "./globals.css";
 import Navigation from "./components/Navigation";
 import { AuthProvider } from "./contexts/AuthContext";
+import LoadingSpinner from "./components/LoadingSpinner";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -30,7 +32,9 @@ export default function RootLayout({
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}
       >
         <AuthProvider>
-          <Navigation />
+          <Suspense fallback={<div className="h-16" />}>
+            <Navigation />
+          </Suspense>
           <div className="page-fade-in">
             {children}
           </div>

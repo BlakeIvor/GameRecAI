@@ -43,7 +43,7 @@ export default function ContactPage() {
             Contact Us
           </h1>
           <p className="text-xl text-gray-300 max-w-3xl mx-auto leading-relaxed">
-            Have questions, feedback, or need support? We're here to help! Reach out to our team and we'll get back to you as soon as possible.
+            Have questions, feedback, or need support? We&apos;re here to help! Reach out to our team and we&apos;ll get back to you as soon as possible.
           </p>
         </div>
 

@@ -1,10 +1,11 @@
 "use client";
 
 import { useSearchParams } from 'next/navigation';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, Suspense } from 'react';
 import Link from 'next/link';
+import LoadingSpinner from '../components/LoadingSpinner';
 
-export default function LoginPage() {
+function LoginContent() {
   const [error, setError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const searchParams = useSearchParams();
@@ -49,7 +50,7 @@ export default function LoginPage() {
       // Redirect to Steam login
       window.location.href = "http://localhost:8000/api/auth/steam/login";
       
-    } catch (error) {
+    } catch (err) {
       setError('Cannot reach authentication server. Please try again later.');
       setIsLoading(false);
     }
@@ -135,7 +136,7 @@ export default function LoginPage() {
               {/* Info Text */}
               <div className="text-center space-y-3">
                 <p className="text-gray-500 text-xs">
-                  You'll be securely redirected to Steam to authenticate
+                  You&apos;ll be securely redirected to Steam to authenticate
                 </p>
                 
                 <div className="flex items-center justify-center space-x-4 text-xs text-gray-600">
@@ -184,5 +185,13 @@ export default function LoginPage() {
         </div>
       </div>
     </main>
+  );
+}
+
+export default function LoginPage() {
+  return (
+    <Suspense fallback={<LoadingSpinner />}>
+      <LoginContent />
+    </Suspense>
   );
 }
