@@ -122,9 +122,6 @@ export default function CollaborativeRecommendationsPage() {
     };
 
     fetchTags();
-    // Refresh tags every 30 seconds to catch new additions
-    const interval = setInterval(fetchTags, 30000);
-    return () => clearInterval(interval);
   }, []);
 
   // Available Steam genres (official Steam genres)
