@@ -20,7 +20,13 @@ interface GameDetailModalProps {
     negative: number;
     price: string;
     steam_url: string;
-    recommended_by_count: number;
+    recommended_by_count?: number;
+    rf_score?: number;
+    rf_explanations?: Array<{
+      feature: string;
+      value: string;
+      importance: string;
+    }>;
   };
   onClose: () => void;
 }
@@ -126,15 +132,17 @@ export default function GameDetailModal({ game, onClose }: GameDetailModalProps)
             </div>
           </div>
 
-          {/* Recommendation Info */}
-          <div className="bg-gray-800 rounded-lg p-4">
-            <h3 className="text-lg font-semibold mb-2">Recommendation</h3>
-            <p className="text-gray-300">
-              Recommended by{' '}
-              <span className="text-white font-bold">{game.recommended_by_count}</span>{' '}
-              similar user{game.recommended_by_count !== 1 ? 's' : ''}
-            </p>
-          </div>
+          {/* Recommendation Info - Only show for collaborative filtering */}
+          {game.recommended_by_count !== undefined && game.recommended_by_count > 0 && (
+            <div className="bg-gray-800 rounded-lg p-4">
+              <h3 className="text-lg font-semibold mb-2">Recommendation</h3>
+              <p className="text-gray-300">
+                Recommended by{' '}
+                <span className="text-white font-bold">{game.recommended_by_count}</span>{' '}
+                similar user{game.recommended_by_count !== 1 ? 's' : ''}
+              </p>
+            </div>
+          )}
 
           {/* Genres */}
           {game.genres && game.genres.length > 0 && (
@@ -227,6 +235,35 @@ export default function GameDetailModal({ game, onClose }: GameDetailModalProps)
             <div className="bg-gray-800 rounded-lg p-4">
               <h3 className="text-lg font-semibold mb-2">Supported Languages</h3>
               <p className="text-gray-300">{game.languages.join(', ')}</p>
+            </div>
+          )}
+
+          {/* AI Score Explanation - Compact version at bottom */}
+          {game.rf_score !== undefined && game.rf_explanations && game.rf_explanations.length > 0 && (
+            <div className="bg-gradient-to-r from-purple-900/30 to-blue-900/30 border border-purple-700/40 rounded-lg p-3">
+              <div className="flex items-center gap-3 mb-2">
+                <span className="text-purple-300 text-sm font-semibold">🤖 AI Score: {game.rf_score.toFixed(2)}</span>
+              </div>
+              <div className="flex flex-wrap gap-2">
+                {game.rf_explanations.map((explanation, idx) => (
+                  <div
+                    key={idx}
+                    className="bg-gray-800/60 rounded px-2 py-1 flex items-center gap-1.5 text-xs"
+                  >
+                    {explanation.importance === 'high' && (
+                      <span className="text-green-400">●</span>
+                    )}
+                    {explanation.importance === 'medium' && (
+                      <span className="text-yellow-400">●</span>
+                    )}
+                    {explanation.importance === 'low' && (
+                      <span className="text-blue-400">●</span>
+                    )}
+                    <span className="text-purple-200 font-medium">{explanation.feature}:</span>
+                    <span className="text-gray-300">{explanation.value}</span>
+                  </div>
+                ))}
+              </div>
             </div>
           )}
 

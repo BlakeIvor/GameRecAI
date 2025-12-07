@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { useAuth } from '../contexts/AuthContext';
 import LoadingSpinner from '../components/LoadingSpinner';
 import WaveBackground from '../components/WaveBackground';
+import GameDetailModal from '../components/GameDetailModal';
 
 interface GameRecommendation {
   name: string;
@@ -18,6 +19,12 @@ interface GameRecommendation {
   publishers?: string[];
   release_date?: string;
   image?: string;
+  languages?: string[];
+  categories?: string[];
+  tags?: string[];
+  platforms?: { [key: string]: boolean };
+  positive?: number;
+  negative?: number;
 }
 
 interface AIResponse {
@@ -41,6 +48,7 @@ export default function AIChatPage() {
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [inputValue, setInputValue] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+  const [selectedGame, setSelectedGame] = useState<any | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
 
@@ -169,6 +177,64 @@ export default function AIChatPage() {
     return price;
   };
 
+  const mapGameToModalFormat = (game: GameRecommendation) => {
+    return {
+      game_id: game.app_id || game.steam_appid,
+      name: game.name,
+      header_image: game.image || `https://cdn.akamai.steamstatic.com/steam/apps/${game.app_id}/header.jpg`,
+      short_description: game.description,
+      genres: game.genres || [],
+      languages: game.languages || [],
+      categories: game.categories || [],
+      tags: game.tags || [],
+      platforms: game.platforms || {},
+      release_date: game.release_date || '',
+      developers: game.developers || [],
+      publishers: game.publishers || [],
+      positive: game.positive || 0,
+      negative: game.negative || 0,
+      price: formatPrice(game.price),
+      steam_url: game.steam_url,
+    };
+  };
+
+  const handleGameClick = async (game: GameRecommendation) => {
+    // Try to fetch full details from backend
+    const gameId = game.app_id || game.steam_appid;
+    if (gameId) {
+      try {
+        const response = await fetch(`http://localhost:8000/api/steam/game-details/${gameId}`);
+        if (response.ok) {
+          const fullGameData = await response.json();
+          // Map the full data to modal format
+          setSelectedGame({
+            game_id: fullGameData.game_id,
+            name: fullGameData.name,
+            header_image: fullGameData.header_image || fullGameData.image,
+            short_description: fullGameData.short_description || fullGameData.short_desc,
+            genres: fullGameData.genres || [],
+            languages: fullGameData.languages || [],
+            categories: fullGameData.categories || [],
+            tags: fullGameData.tags || [],
+            platforms: fullGameData.platforms || {},
+            release_date: fullGameData.release_date,
+            developers: fullGameData.developers || [],
+            publishers: fullGameData.publishers || [],
+            positive: fullGameData.positive || 0,
+            negative: fullGameData.negative || 0,
+            price: fullGameData.price,
+            steam_url: fullGameData.steam_url,
+          });
+          return;
+        }
+      } catch (error) {
+        console.error('Error fetching full game details:', error);
+      }
+    }
+    // Fallback to mapping the game data we have
+    setSelectedGame(mapGameToModalFormat(game));
+  };
+
   if (authLoading) {
     return (
       <main className="min-h-screen bg-black text-white flex items-center justify-center">
@@ -251,7 +317,8 @@ export default function AIChatPage() {
                       {message.recommendations.map((game) => (
                         <div
                           key={game.app_id}
-                          className="bg-gradient-to-r from-gray-900 to-gray-800 rounded-lg border border-gray-700/50 p-4 hover:from-gray-850 hover:to-gray-750 transition-all duration-300 group mr-4 sm:mr-8"
+                          onClick={() => handleGameClick(game)}
+                          className="bg-gradient-to-r from-gray-900 to-gray-800 rounded-lg border border-gray-700/50 p-4 hover:from-gray-850 hover:to-gray-750 transition-all duration-300 group mr-4 sm:mr-8 cursor-pointer hover:border-blue-500/50"
                         >
                           <div className="flex flex-col sm:flex-row items-start space-y-3 sm:space-y-0 sm:space-x-4">
                             {/* Game Thumbnail - Always show placeholder area */}
@@ -365,6 +432,14 @@ export default function AIChatPage() {
         </div>
       </div>
       </div>
+
+      {/* Game Detail Modal */}
+      {selectedGame && (
+        <GameDetailModal
+          game={selectedGame}
+          onClose={() => setSelectedGame(null)}
+        />
+      )}
     </main>
   );
 }

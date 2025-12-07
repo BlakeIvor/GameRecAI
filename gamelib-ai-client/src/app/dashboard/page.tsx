@@ -392,7 +392,7 @@ function DashboardContent() {
             
             <div className="bg-gray-900/50 rounded-lg p-4 border border-gray-700/30">
               <h3 className="text-green-400 font-semibold mb-3 text-sm uppercase tracking-wide">Top Games</h3>
-              <div className="space-y-3 min-h-[180px]">
+              <div className="space-y-2">
                 {(() => {
                   console.log('Top Games Render - profileLoading:', profileLoading);
                   console.log('Top Games Render - profileData:', profileData);
@@ -401,47 +401,89 @@ function DashboardContent() {
                   return null;
                 })()}
                 {profileLoading ? (
-                  <div className="space-y-3">
-                    {[1, 2, 3].map((i) => (
-                      <div key={`skeleton-${i}`} className="flex items-center justify-between animate-pulse">
-                        <div className="flex items-center">
-                          <div className="w-8 h-8 bg-gray-700 rounded mr-2"></div>
-                          <div className="h-4 bg-gray-700 rounded w-32"></div>
+                  <>
+                    {/* Top 2 games skeleton - side by side */}
+                    <div className="grid grid-cols-2 gap-2">
+                      {[1, 2].map((i) => (
+                        <div key={`skeleton-top-${i}`} className="flex flex-col items-center gap-1 animate-pulse">
+                          <div className="w-10 h-10 bg-gray-700 rounded"></div>
+                          <div className="h-2.5 bg-gray-700 rounded w-16"></div>
+                          <div className="h-2 bg-gray-700 rounded w-12"></div>
                         </div>
-                        <div className="h-4 bg-gray-700 rounded w-16"></div>
-                      </div>
-                    ))}
-                  </div>
-                ) : profileData && profileData.topGames && profileData.topGames.length > 0 ? (
-                  profileData.topGames.slice(0, 5).map((game) => (
-                    <div key={game.appid} className="flex items-center justify-between">
-                      <div className="flex items-center">
-                        <div className="w-8 h-8 bg-gray-700 rounded mr-2 flex items-center justify-center overflow-hidden">
-                          {game.image ? (
-                            <img 
-                              src={game.image} 
-                              alt={game.name || `Game ${game.appid}`}
-                              className="w-full h-full object-cover"
-                              onError={(e) => {
-                                // Fallback to game controller emoji if image fails
-                                e.currentTarget.style.display = 'none';
-                                const parent = e.currentTarget.parentElement;
-                                if (parent) {
-                                  parent.innerHTML = '<span class="text-xs">🎮</span>';
-                                }
-                              }}
-                            />
-                          ) : (
-                            <span className="text-xs">🎮</span>
-                          )}
-                        </div>
-                        <span className="text-white text-sm">{game.name || `Game ${game.appid}`}</span>
-                      </div>
-                      <span className="text-gray-400 text-xs">{formatPlaytime(game.playtime_forever)}</span>
+                      ))}
                     </div>
-                  ))
+                    {/* Bottom 3 games skeleton - side by side */}
+                    <div className="grid grid-cols-3 gap-1.5">
+                      {[3, 4, 5].map((i) => (
+                        <div key={`skeleton-bottom-${i}`} className="flex flex-col items-center gap-1 animate-pulse">
+                          <div className="w-7 h-7 bg-gray-700 rounded"></div>
+                          <div className="h-2 bg-gray-700 rounded w-12"></div>
+                          <div className="h-2 bg-gray-700 rounded w-10"></div>
+                        </div>
+                      ))}
+                    </div>
+                  </>
+                ) : profileData && profileData.topGames && profileData.topGames.length > 0 ? (
+                  <>
+                    {/* Top 2 games - larger, side by side */}
+                    <div className="grid grid-cols-2 gap-2">
+                      {profileData.topGames.slice(0, 2).map((game) => (
+                        <div key={game.appid} className="flex flex-col items-center gap-1 min-w-0">
+                          <div className="w-10 h-10 bg-gray-700 rounded flex-shrink-0 flex items-center justify-center overflow-hidden">
+                            {game.image ? (
+                              <img 
+                                src={game.image} 
+                                alt={game.name || `Game ${game.appid}`}
+                                className="w-full h-full object-cover"
+                                onError={(e) => {
+                                  e.currentTarget.style.display = 'none';
+                                  const parent = e.currentTarget.parentElement;
+                                  if (parent) {
+                                    parent.innerHTML = '<span class="text-base">🎮</span>';
+                                  }
+                                }}
+                              />
+                            ) : (
+                              <span className="text-base">🎮</span>
+                            )}
+                          </div>
+                          <span className="text-white text-xs font-medium text-center truncate w-full px-0.5">{game.name || `Game ${game.appid}`}</span>
+                          <span className="text-gray-400 text-xs">{formatPlaytime(game.playtime_forever)}</span>
+                        </div>
+                      ))}
+                    </div>
+                    {/* Bottom 3 games - smaller, side by side */}
+                    {profileData.topGames.length > 2 && (
+                      <div className="grid grid-cols-3 gap-1.5 pt-1.5 border-t border-gray-700/30">
+                        {profileData.topGames.slice(2, 5).map((game) => (
+                          <div key={game.appid} className="flex flex-col items-center gap-0.5 min-w-0">
+                            <div className="w-7 h-7 bg-gray-700 rounded flex-shrink-0 flex items-center justify-center overflow-hidden">
+                              {game.image ? (
+                                <img 
+                                  src={game.image} 
+                                  alt={game.name || `Game ${game.appid}`}
+                                  className="w-full h-full object-cover"
+                                  onError={(e) => {
+                                    e.currentTarget.style.display = 'none';
+                                    const parent = e.currentTarget.parentElement;
+                                    if (parent) {
+                                      parent.innerHTML = '<span class="text-xs">🎮</span>';
+                                    }
+                                  }}
+                                />
+                              ) : (
+                                <span className="text-xs">🎮</span>
+                              )}
+                            </div>
+                            <span className="text-white text-xs text-center truncate w-full px-0.5" title={game.name || `Game ${game.appid}`}>{game.name || `Game ${game.appid}`}</span>
+                            <span className="text-gray-400 text-xs">{formatPlaytime(game.playtime_forever)}</span>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </>
                 ) : (
-                  <div className="text-center py-2">
+                  <div className="text-center py-4">
                     <span className="text-gray-500 text-xs">
                       {!profileData ? 'Loading profile data...' : 'No game data available'}
                     </span>

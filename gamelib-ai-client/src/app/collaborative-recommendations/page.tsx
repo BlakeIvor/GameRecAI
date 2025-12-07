@@ -27,6 +27,12 @@ interface GameRecommendation {
   recommendation_score: number;
   recommended_by_count: number;
   steam_url: string;
+  rf_score?: number;
+  rf_explanations?: Array<{
+    feature: string;
+    value: string;
+    importance: string;
+  }>;
 }
 
 interface SimilarUser {
@@ -44,6 +50,14 @@ interface CollaborativeRecommendationsResponse {
   similar_users: SimilarUser[];
   user_top_games: number[];
   total_users_analyzed: number;
+  rf_model_info?: {
+    model_used: boolean;
+    model_path?: string;
+    n_estimators?: number;
+    games_reranked?: number;
+    feature_dimensions?: number;
+    reason?: string;
+  };
 }
 
 interface CachedData {
@@ -52,6 +66,14 @@ interface CachedData {
   stats: {
     userTopGames: number[];
     totalUsersAnalyzed: number;
+    rfModelInfo?: {
+      model_used: boolean;
+      model_path?: string;
+      n_estimators?: number;
+      games_reranked?: number;
+      feature_dimensions?: number;
+      reason?: string;
+    };
   };
   filters: {
     topNGames: number;
@@ -81,6 +103,14 @@ export default function CollaborativeRecommendationsPage() {
   const [stats, setStats] = useState<{
     userTopGames: number[];
     totalUsersAnalyzed: number;
+    rfModelInfo?: {
+      model_used: boolean;
+      model_path?: string;
+      n_estimators?: number;
+      games_reranked?: number;
+      feature_dimensions?: number;
+      reason?: string;
+    };
   } | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -371,6 +401,7 @@ export default function CollaborativeRecommendationsPage() {
       const statsData = {
         userTopGames: data.user_top_games || [],
         totalUsersAnalyzed: data.total_users_analyzed || 0,
+        rfModelInfo: data.rf_model_info,
       };
 
       setRecommendations(recs);
@@ -827,6 +858,57 @@ export default function CollaborativeRecommendationsPage() {
               </div>
             </div>
             
+            {/* RF Model Info */}
+            {stats.rfModelInfo && (
+              <div className="mt-4 pt-4 border-t border-gray-700/50">
+                <div className="flex items-start gap-3">
+                  <span className="text-2xl">🤖</span>
+                  <div className="flex-1">
+                    <h3 className="text-sm font-semibold text-gray-300 mb-2">AI Model Enhancement</h3>
+                    {stats.rfModelInfo.model_used ? (
+                      <div className="space-y-1">
+                        <p className="text-xs text-green-400 flex items-center gap-2">
+                          <span className="inline-block w-2 h-2 bg-green-400 rounded-full animate-pulse"></span>
+                          <span className="font-medium">Global Random Forest Model Active</span>
+                        </p>
+                        <div className="grid grid-cols-2 md:grid-cols-4 gap-2 mt-2 text-xs">
+                          <div className="bg-gray-800/50 rounded px-2 py-1">
+                            <span className="text-gray-400">Trees:</span>
+                            <span className="text-white ml-1 font-medium">{stats.rfModelInfo.n_estimators || 300}</span>
+                          </div>
+                          <div className="bg-gray-800/50 rounded px-2 py-1">
+                            <span className="text-gray-400">Features:</span>
+                            <span className="text-white ml-1 font-medium">{stats.rfModelInfo.feature_dimensions?.toLocaleString() || 'N/A'}</span>
+                          </div>
+                          <div className="bg-gray-800/50 rounded px-2 py-1">
+                            <span className="text-gray-400">Reranked:</span>
+                            <span className="text-white ml-1 font-medium">{stats.rfModelInfo.games_reranked || 0}</span>
+                          </div>
+                          <div className="bg-gray-800/50 rounded px-2 py-1">
+                            <span className="text-gray-400">Source:</span>
+                            <span className="text-white ml-1 font-medium">2.5M+ users</span>
+                          </div>
+                        </div>
+                        <p className="text-xs text-gray-500 mt-2 italic">
+                          Results optimized using machine learning trained on millions of user playtime patterns
+                        </p>
+                      </div>
+                    ) : (
+                      <div className="space-y-1">
+                        <p className="text-xs text-yellow-400 flex items-center gap-2">
+                          <span>⚠️</span>
+                          <span>Model not active</span>
+                        </p>
+                        {stats.rfModelInfo.reason && (
+                          <p className="text-xs text-gray-500">Reason: {stats.rfModelInfo.reason}</p>
+                        )}
+                      </div>
+                    )}
+                  </div>
+                </div>
+              </div>
+            )}
+            
             {/* Cache status footer */}
             {usingCache && (
               <div className="pt-4 border-t border-gray-700/50">
@@ -908,7 +990,7 @@ export default function CollaborativeRecommendationsPage() {
                     </div>
 
                     {/* Stats */}
-                    <div className="flex items-center justify-between text-sm mb-4">
+                    <div className="flex items-center justify-between text-sm mb-2">
                       <div className="text-gray-400">
                         Recommended by{' '}
                         <span className="text-white font-semibold">
@@ -920,6 +1002,16 @@ export default function CollaborativeRecommendationsPage() {
                         {game.price}
                       </div>
                     </div>
+
+                    {/* ML Model Score */}
+                    {game.rf_score !== undefined && (
+                      <div className="bg-purple-900/30 border border-purple-700/50 rounded px-3 py-2 mb-4">
+                        <div className="flex items-center justify-between">
+                          <span className="text-xs text-purple-300 font-medium">AI Predicted Score</span>
+                          <span className="text-sm text-purple-200 font-bold">{game.rf_score.toFixed(2)}</span>
+                        </div>
+                      </div>
+                    )}
 
                     {/* Actions */}
                     <div className="flex gap-2">
