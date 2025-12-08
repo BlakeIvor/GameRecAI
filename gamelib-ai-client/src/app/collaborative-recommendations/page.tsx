@@ -475,18 +475,51 @@ export default function CollaborativeRecommendationsPage() {
     .sort((a, b) => (b.positive || 0) - (a.positive || 0))
     .slice(0, maxRecommendations);
 
-  // Calculate grid columns based on number of recommendations
-  const getGridColumns = () => {
-    const count = recommendations.length;
-    if (count === 0) return 'grid-cols-1';
-    if (count === 1) return 'grid-cols-1';
-    if (count === 2) return 'grid-cols-2';
-    if (count <= 5) return 'grid-cols-2 lg:grid-cols-2';
-    if (count <= 10) return 'grid-cols-2 lg:grid-cols-2';
-    if (count <= 15) return 'grid-cols-2 md:grid-cols-3 lg:grid-cols-3';
-    if (count <= 20) return 'grid-cols-2 md:grid-cols-3 lg:grid-cols-4';
-    return 'grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5';
+  // Calculate row distribution for games
+  const getRowDistribution = (total: number): number[] => {
+    if (total === 0) return [];
+    if (total === 1) return [1];
+    if (total === 2) return [2];
+    
+    const rows: number[] = [];
+    let remaining = total;
+    let maxPerRow = 4;
+    
+    // For all numbers >= 3, first row has fewer games to make them more prominent
+    if (total >= 3) {
+      const firstRowCount = total % 2 === 0 
+        ? Math.min(Math.floor(total / maxPerRow), 2) // Even: 2 for first row (e.g., 10 -> 2, 4, 4)
+        : Math.min(Math.ceil(total / 2) - 1, 3); // Odd: up to 3 for first row
+      
+      rows.push(firstRowCount);
+      remaining -= firstRowCount;
+      
+      // Distribute remaining games with max per row
+      while (remaining > 0) {
+        const nextRow = Math.min(remaining, maxPerRow);
+        rows.push(nextRow);
+        remaining -= nextRow;
+      }
+    }
+    
+    return rows;
   };
+
+  // Organize games into rows
+  const organizeGamesIntoRows = (games: GameRecommendation[]) => {
+    const distribution = getRowDistribution(games.length);
+    const rows: GameRecommendation[][] = [];
+    let index = 0;
+    
+    distribution.forEach(count => {
+      rows.push(games.slice(index, index + count));
+      index += count;
+    });
+    
+    return rows;
+  };
+
+  const gameRows = organizeGamesIntoRows(sortedRecommendations);
 
   if (authLoading || loading) {
     return (
@@ -936,96 +969,109 @@ export default function CollaborativeRecommendationsPage() {
                 Top {sortedRecommendations.length} Games (by Positive Reviews)
               </h2>
             </div>
-            <div className={`grid ${getGridColumns()} gap-4 transition-all duration-300`}>
-              {sortedRecommendations.map((game) => (
-                <div
-                  key={game.game_id}
-                  onClick={() => setSelectedGame(game)}
-                  className="bg-gray-900 rounded-lg overflow-hidden hover:bg-gray-800 transition-all duration-300 hover:scale-105 hover:shadow-xl cursor-pointer"
+            <div className="space-y-4">
+              {gameRows.map((row, rowIndex) => (
+                <div 
+                  key={rowIndex}
+                  className={`grid gap-4 transition-all duration-300 ${
+                    row.length === 1 ? 'grid-cols-1 max-w-2xl mx-auto' :
+                    row.length === 2 ? 'grid-cols-2' :
+                    row.length === 3 ? 'grid-cols-3' :
+                    row.length === 4 ? 'grid-cols-4' :
+                    'grid-cols-5'
+                  }`}
                 >
-                  {/* Game Image */}
-                  {game.header_image && (
-                    <img
-                      src={game.header_image}
-                      alt={game.name}
-                      className="w-full h-48 object-cover"
-                    />
-                  )}
+                  {row.map((game) => (
+                    <div
+                      key={game.game_id}
+                      onClick={() => setSelectedGame(game)}
+                      className="bg-gray-900 rounded-lg overflow-hidden hover:bg-gray-800 transition-all duration-300 hover:scale-105 hover:shadow-xl cursor-pointer"
+                    >
+                      {/* Game Image */}
+                      {game.header_image && (
+                        <img
+                          src={game.header_image}
+                          alt={game.name}
+                          className="w-full h-48 object-cover"
+                        />
+                      )}
 
-                  {/* Game Info */}
-                  <div className="p-4">
-                    <h3 className="text-xl font-semibold mb-2 line-clamp-1">
-                      {game.name}
-                    </h3>
+                      {/* Game Info */}
+                      <div className="p-4">
+                        <h3 className="text-xl font-semibold mb-2 line-clamp-1">
+                          {game.name}
+                        </h3>
 
-                    {/* Genres */}
-                    {game.genres && game.genres.length > 0 && (
-                      <div className="flex flex-wrap gap-2 mb-3">
-                        {game.genres.slice(0, 3).map((genre, index) => (
-                          <span
-                            key={index}
-                            className="bg-blue-600/30 text-blue-300 text-xs px-2 py-1 rounded"
+                        {/* Genres */}
+                        {game.genres && game.genres.length > 0 && (
+                          <div className="flex flex-wrap gap-2 mb-3">
+                            {game.genres.slice(0, 3).map((genre, index) => (
+                              <span
+                                key={index}
+                                className="bg-blue-600/30 text-blue-300 text-xs px-2 py-1 rounded"
+                              >
+                                {genre}
+                              </span>
+                            ))}
+                          </div>
+                        )}
+
+                        {/* Description */}
+                        <p className="text-gray-400 text-sm mb-4 line-clamp-3">
+                          {game.short_description || 'No description available'}
+                        </p>
+
+                        {/* Reviews */}
+                        <div className="flex items-center gap-4 text-sm mb-4">
+                          <div className="flex items-center gap-1">
+                            <span className="text-green-400">▲</span>
+                            <span className="text-gray-400">{(game.positive || 0).toLocaleString()}</span>
+                          </div>
+                          <div className="flex items-center gap-1">
+                            <span className="text-red-400">▼</span>
+                            <span className="text-gray-400">{(game.negative || 0).toLocaleString()}</span>
+                          </div>
+                        </div>
+
+                        {/* Stats */}
+                        <div className="flex items-center justify-between text-sm mb-2">
+                          <div className="text-gray-400">
+                            Recommended by{' '}
+                            <span className="text-white font-semibold">
+                              {game.recommended_by_count}
+                            </span>{' '}
+                            user{game.recommended_by_count !== 1 ? 's' : ''}
+                          </div>
+                          <div className="text-green-400 font-semibold">
+                            {game.price}
+                          </div>
+                        </div>
+
+                        {/* ML Model Score */}
+                        {game.rf_score !== undefined && (
+                          <div className="bg-purple-900/30 border border-purple-700/50 rounded px-3 py-2 mb-4">
+                            <div className="flex items-center justify-between">
+                              <span className="text-xs text-purple-300 font-medium">AI Predicted Score</span>
+                              <span className="text-sm text-purple-200 font-bold">{game.rf_score.toFixed(2)}</span>
+                            </div>
+                          </div>
+                        )}
+
+                        {/* Actions */}
+                        <div className="flex gap-2">
+                          <a
+                            href={game.steam_url}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            onClick={(e) => e.stopPropagation()}
+                            className="flex-1 bg-blue-600 hover:bg-blue-700 text-white font-semibold py-2 px-4 rounded text-center transition-colors"
                           >
-                            {genre}
-                          </span>
-                        ))}
-                      </div>
-                    )}
-
-                    {/* Description */}
-                    <p className="text-gray-400 text-sm mb-4 line-clamp-3">
-                      {game.short_description || 'No description available'}
-                    </p>
-
-                    {/* Reviews */}
-                    <div className="flex items-center gap-4 text-sm mb-4">
-                      <div className="flex items-center gap-1">
-                        <span className="text-green-400">▲</span>
-                        <span className="text-gray-400">{(game.positive || 0).toLocaleString()}</span>
-                      </div>
-                      <div className="flex items-center gap-1">
-                        <span className="text-red-400">▼</span>
-                        <span className="text-gray-400">{(game.negative || 0).toLocaleString()}</span>
-                      </div>
-                    </div>
-
-                    {/* Stats */}
-                    <div className="flex items-center justify-between text-sm mb-2">
-                      <div className="text-gray-400">
-                        Recommended by{' '}
-                        <span className="text-white font-semibold">
-                          {game.recommended_by_count}
-                        </span>{' '}
-                        user{game.recommended_by_count !== 1 ? 's' : ''}
-                      </div>
-                      <div className="text-green-400 font-semibold">
-                        {game.price}
-                      </div>
-                    </div>
-
-                    {/* ML Model Score */}
-                    {game.rf_score !== undefined && (
-                      <div className="bg-purple-900/30 border border-purple-700/50 rounded px-3 py-2 mb-4">
-                        <div className="flex items-center justify-between">
-                          <span className="text-xs text-purple-300 font-medium">AI Predicted Score</span>
-                          <span className="text-sm text-purple-200 font-bold">{game.rf_score.toFixed(2)}</span>
+                            View on Steam
+                          </a>
                         </div>
                       </div>
-                    )}
-
-                    {/* Actions */}
-                    <div className="flex gap-2">
-                      <a
-                        href={game.steam_url}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        onClick={(e) => e.stopPropagation()}
-                        className="flex-1 bg-blue-600 hover:bg-blue-700 text-white font-semibold py-2 px-4 rounded text-center transition-colors"
-                      >
-                        View on Steam
-                      </a>
                     </div>
-                  </div>
+                  ))}
                 </div>
               ))}
             </div>

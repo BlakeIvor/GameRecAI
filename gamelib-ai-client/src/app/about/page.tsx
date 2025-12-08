@@ -97,6 +97,93 @@ export default function AboutPage() {
           </div>
         </div>
 
+        {/* Roadmap Timeline */}
+        <div className="mb-16">
+          <h2 className="text-3xl font-bold text-center mb-4">What&apos;s Next</h2>
+          <p className="text-center text-gray-400 mb-12">Our development roadmap for 2026</p>
+          
+          <div className="max-w-3xl mx-auto">
+            {/* Timeline container */}
+            <div className="relative">
+              {/* Vertical line */}
+              <div className="absolute left-8 top-0 bottom-0 w-0.5 bg-gradient-to-b from-blue-500 via-purple-500 to-blue-500"></div>
+              
+              {/* Timeline items */}
+              <div className="space-y-8">
+                {/* Item 1 */}
+                <div className="relative pl-20">
+                  <div className="absolute left-6 top-2 w-5 h-5 bg-blue-500 rounded-full border-4 border-gray-900"></div>
+                  <div className="bg-gray-800 rounded-lg p-6 hover:bg-gray-750 transition-colors">
+                    <div className="flex items-center justify-between mb-2">
+                      <h3 className="text-xl font-semibold text-blue-400">Implement Settings Page</h3>
+                      <span className="text-sm text-gray-400">Feb 2026</span>
+                    </div>
+                    <p className="text-gray-300">Include adult games and content filters, display settings/preferences customization</p>
+                  </div>
+                </div>
+
+                {/* Item 2 */}
+                <div className="relative pl-20">
+                  <div className="absolute left-6 top-2 w-5 h-5 bg-purple-500 rounded-full border-4 border-gray-900"></div>
+                  <div className="bg-gray-800 rounded-lg p-6 hover:bg-gray-750 transition-colors">
+                    <div className="flex items-center justify-between mb-2">
+                      <h3 className="text-xl font-semibold text-purple-400">External App Integrations</h3>
+                      <span className="text-sm text-gray-400">March 2026</span>
+                    </div>
+                    <p className="text-gray-300">Connect with Discord and other platforms to share recommendations with friends</p>
+                  </div>
+                </div>
+
+                {/* Item 3 */}
+                <div className="relative pl-20">
+                  <div className="absolute left-6 top-2 w-5 h-5 bg-blue-500 rounded-full border-4 border-gray-900"></div>
+                  <div className="bg-gray-800 rounded-lg p-6 hover:bg-gray-750 transition-colors">
+                    <div className="flex items-center justify-between mb-2">
+                      <h3 className="text-xl font-semibold text-blue-400">Expanded User Database</h3>
+                      <span className="text-sm text-gray-400">Mid 2026</span>
+                    </div>
+                    <p className="text-gray-300">Growth of our user base for enhanced collaborative filtering and better recommendations</p>
+                  </div>
+                </div>
+
+                {/* Item 4 */}
+                <div className="relative pl-20">
+                  <div className="absolute left-6 top-2 w-5 h-5 bg-purple-500 rounded-full border-4 border-gray-900"></div>
+                  <div className="bg-gray-800 rounded-lg p-6 hover:bg-gray-750 transition-colors">
+                    <div className="flex items-center justify-between mb-2">
+                      <h3 className="text-xl font-semibold text-purple-400">Performance Improvements</h3>
+                      <span className="text-sm text-gray-400">Mid 2026</span>
+                    </div>
+                    <p className="text-gray-300">Faster loading times for AI chatbot and recommendations page</p>
+                  </div>
+                </div>
+
+                {/* Item 5 */}
+                <div className="relative pl-20">
+                  <div className="absolute left-6 top-2 w-5 h-5 bg-blue-500 rounded-full border-4 border-gray-900"></div>
+                  <div className="bg-gray-800 rounded-lg p-6 hover:bg-gray-750 transition-colors">
+                    <div className="flex items-center justify-between mb-2">
+                      <h3 className="text-xl font-semibold text-blue-400">ML Model & AI Enhancement</h3>
+                      <span className="text-sm text-gray-400">Ongoing</span>
+                    </div>
+                    <p className="text-gray-300">Continuous development and refinement of our machine learning algorithms and AI chatbot</p>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* CTA for suggestions */}
+            <div className="mt-12 text-center bg-gray-800 rounded-lg p-6 border border-gray-700">
+              <p className="text-gray-300">
+                Have ideas for new features? 
+                <Link href="/contact" className="text-blue-400 hover:text-blue-300 ml-2 font-semibold">
+                  Visit our contact page →
+                </Link>
+              </p>
+            </div>
+          </div>
+        </div>
+
         {/* Team Section */}
         <div className="mb-16">
           <h2 className="text-3xl font-bold text-center mb-12">Our Team</h2>
@@ -115,9 +202,12 @@ export default function AboutPage() {
             </div>
 
             <div className="text-center">
-              <div className="bg-gray-700 rounded-full w-32 h-45 mx-auto mb-4 flex items-center justify-center">
-                <p className="text-gray-400 text-sm">Founder Photo</p>
-              </div>
+              <img 
+                src="/blaika.jpg" 
+                alt="Blake Shea" 
+                className="rounded-full w-32 h-45 mx-auto mb-4 object-cover"
+                style={{ objectPosition: '100% center' }}
+              />
               <h3 className="text-xl font-semibold mb-2">Blake Shea</h3>
               <p className="text-blue-400 mb-2">Founder</p>
               <p className="text-gray-300 text-sm">

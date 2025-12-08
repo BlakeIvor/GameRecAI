@@ -497,7 +497,7 @@ function DashboardContent() {
         {/* Features Grid */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 mb-8">
           <Link 
-            href="/recommendations" 
+            href="/ai-recommendations" 
             className="bg-gradient-to-br from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 p-8 rounded-xl block transition-all duration-300 group shadow-xl transform hover:scale-105"
           >
             <div className="flex items-center mb-4">

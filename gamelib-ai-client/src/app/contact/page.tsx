@@ -194,6 +194,8 @@ export default function ContactPage() {
               <div className="grid grid-cols-2 gap-4">
                 <a 
                   href="https://x.com/N3bbo" 
+                  target="_blank"
+                  rel="noopener noreferrer"
                   className="bg-gray-700 hover:bg-gray-600 p-4 rounded-lg transition-colors block text-center"
                 >
                   <img src="/twit_pfp.jpg" alt="Twitter" className="w-8 h-8 rounded mx-auto mb-2 object-cover" />
@@ -203,6 +205,8 @@ export default function ContactPage() {
                 
                 <a 
                   href="https://github.com/benseidenberg/GameLib-Backend" 
+                  target="_blank"
+                  rel="noopener noreferrer"
                   className="bg-gray-700 hover:bg-gray-600 p-4 rounded-lg transition-colors block text-center"
                 >
                   <img src="/git_logo.png" alt="GitHub" className="w-8 h-8 rounded mx-auto mb-2 object-cover" />
